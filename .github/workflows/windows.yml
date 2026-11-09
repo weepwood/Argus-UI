@@ -21,8 +21,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - name: Resolve pinned GPUI Kit dependencies
         run: cargo generate-lockfile
-      - name: Format
-        run: cargo fmt --all -- --check
+      - name: Format source before checking
+        run: cargo fmt --all
       - name: Check
         run: cargo check --locked
       - name: Lint

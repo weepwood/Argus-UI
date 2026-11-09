@@ -3,7 +3,7 @@
 use gpui_kit::{
     *,
     assets::IconName,
-    component::{ActiveTheme, Icon, Theme, ThemeMode, input::{InputEvent, InputState}},
+    component::{Icon, Theme, ThemeMode, input::{InputEvent, InputState}},
 };
 use crate::{
     components::{self, ButtonTone},

@@ -96,7 +96,7 @@ pub fn sparkline(samples: &[f32], color: Hsla) -> Div {
             div()
                 .w(px(6.))
                 .h(px((v / 100. * 50.).max(5.)))
-                .rounded_t(px(2.))
+                .rounded(px(2.))
                 .bg(color.opacity(0.85))
         }))
 }

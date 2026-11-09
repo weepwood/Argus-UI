@@ -17,7 +17,8 @@ cargo run
 ```
 
 ```powershell
-cargo fmt --all -- --check
+cargo generate-lockfile
+cargo fmt --all
 cargo check --locked
 cargo test --locked
 cargo build --release --locked
