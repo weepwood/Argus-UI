@@ -7,7 +7,7 @@ use crate::{
 };
 
 fn header(p:Palette) -> Div {
-    h_flex().h(px(39.)).px(px(15.)).items_center()
+    div().flex().h(px(39.)).px(px(15.)).items_center()
         .bg(p.control).text_color(p.muted).text_size(px(11.))
         .child(div().flex_1().min_w_0().child("名称"))
         .child(div().w(px(76.)).child("PID"))
@@ -19,7 +19,7 @@ fn header(p:Palette) -> Div {
 fn row(shell:&Shell, process: Process, cx: &mut Context<Shell>) -> AnyElement {
     let p=shell.palette();
     let selected=shell.selected_pid==Some(process.id);
-    h_flex().id(format!("pid-{}",process.id))
+    div().flex().id(format!("pid-{}",process.id))
         .h(px(shell.density.row_height())).px(px(15.))
         .items_center().cursor_pointer()
         .border_b_1().border_color(p.border)
@@ -27,12 +27,12 @@ fn row(shell:&Shell, process: Process, cx: &mut Context<Shell>) -> AnyElement {
         .hover(move |s|s.bg(p.hover))
         .text_size(px(12.))
         .child(
-            h_flex().flex_1().min_w_0().gap(px(9.)).items_center()
+            div().flex().flex_1().min_w_0().gap(px(9.)).items_center()
                 .child(div().size(px(25.)).rounded(px(5.)).bg(p.control)
                     .flex().items_center().justify_center().text_color(p.accent)
                     .font_weight(FontWeight::SEMIBOLD)
                     .child(process.name.chars().next().unwrap_or('A').to_string()))
-                .child(v_flex().min_w_0().gap(px(3.))
+                .child(div().flex().flex_col().min_w_0().gap(px(3.))
                     .child(div().text_color(p.text).font_weight(FontWeight::MEDIUM).child(process.name))
                     .child(div().text_color(p.faint).text_size(px(10.)).child(process.description)))
         )
@@ -49,7 +49,7 @@ fn row(shell:&Shell, process: Process, cx: &mut Context<Shell>) -> AnyElement {
 }
 fn detail(p: Palette, selected:Option<Process>) -> Div {
     let body=match selected {
-        Some(process)=> v_flex().gap(px(13.))
+        Some(process)=> div().flex().flex_col().gap(px(13.))
             .child(div().text_size(px(17.)).font_weight(FontWeight::SEMIBOLD).child(process.name))
             .child(components::tag(process.category,p,true))
             .child(components::divider(p))
@@ -65,7 +65,7 @@ fn detail(p: Palette, selected:Option<Process>) -> Div {
             .child(div().text_size(px(11.)).text_color(p.faint)
                 .child("演示数据不支持结束进程或调整系统优先级。"))
             .into_any_element(),
-        None=>v_flex().gap(px(12.))
+        None=>div().flex().flex_col().gap(px(12.))
             .child(div().text_size(px(16.)).font_weight(FontWeight::SEMIBOLD).child("进程详情"))
             .child(components::small_label("选择左侧任意一行，查看模拟进程详情。",p))
             .into_any_element()
@@ -79,16 +79,16 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyEleme
     let active=rows.iter().find(|row|Some(row.id)==shell.selected_pid).copied();
     let count=rows.len();
     let table_rows=rows.into_iter().map(|process|row(shell,process,cx)).collect::<Vec<_>>();
-    v_flex().w_full().p(px(26.)).gap(px(17.))
+    div().flex().flex_col().w_full().p(px(26.)).gap(px(17.))
         .child(
-            h_flex().justify_between().items_center()
-                .child(v_flex().gap(px(6.))
+            div().flex().justify_between().items_center()
+                .child(div().flex().flex_col().gap(px(6.))
                     .child(components::heading("进程列表",p))
                     .child(components::small_label("筛选、选择与列排序的交互演示",p)))
                 .child(components::tag(format!("{} 项结果",count),p,true))
         )
         .child(
-            h_flex().gap(px(10.)).items_center()
+            div().flex().gap(px(10.)).items_center()
                 .child(
                     div().w(px(320.)).h(px(34.)).border_1().border_color(p.border)
                         .rounded(px(5.)).bg(p.surface).overflow_hidden()
@@ -100,7 +100,7 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyEleme
                 .child(components::tag("本地模拟数据",p,false))
         )
         .child(
-            h_flex().items_start().gap(px(12.))
+            div().flex().items_start().gap(px(12.))
                 .child(
                     components::panel(p).flex_1().min_w_0().overflow_hidden()
                         .child(header(p))

@@ -4,9 +4,9 @@ use crate::{app::Shell, components::{self, ButtonTone}};
 
 pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyElement{
     let p=shell.palette();
-    v_flex().w_full().p(px(26.)).gap(px(19.))
+    div().flex().flex_col().w_full().p(px(26.)).gap(px(19.))
         .child(
-            v_flex().gap(px(6.))
+            div().flex().flex_col().gap(px(6.))
                 .child(components::heading("组件展示",p))
                 .child(components::small_label("原生控件的视觉令牌、交互状态与组合示例",p))
         )
@@ -16,7 +16,7 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyEleme
                 .child(div().h(px(7.)))
                 .child(components::small_label("所有按钮共享同一套形态、字体与反馈规则",p))
                 .child(div().h(px(20.)))
-                .child(h_flex().gap(px(9.)).items_center()
+                .child(div().flex().gap(px(9.)).items_center()
                     .child(components::button("primary","主操作",p,ButtonTone::Primary)
                         .on_click(cx.listener(|this,_,_,cx|{this.demo_clicks+=1;cx.notify();})))
                     .child(components::button("secondary","次要操作",p,ButtonTone::Normal)
@@ -29,12 +29,12 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyEleme
                 .child(components::small_label(format!("演示点击计数：{} 次",shell.demo_clicks),p))
         )
         .child(
-            h_flex().gap(px(14.))
+            div().flex().gap(px(14.))
                 .child(
                     components::panel(p).flex_1().min_w_0().p(px(19.))
                         .child(div().font_weight(FontWeight::SEMIBOLD).child("语义标签"))
                         .child(div().h(px(14.)))
-                        .child(h_flex().gap(px(8.))
+                        .child(div().flex().gap(px(8.))
                             .child(components::tag("默认",p,false))
                             .child(components::tag("已选中",p,true)))
                         .child(div().h(px(23.)))
@@ -50,7 +50,7 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyEleme
                     components::panel(p).flex_1().min_w_0().p(px(19.))
                         .child(div().font_weight(FontWeight::SEMIBOLD).child("数据色板"))
                         .child(div().h(px(16.)))
-                        .child(v_flex().gap(px(13.))
+                        .child(div().flex().flex_col().gap(px(13.))
                             .child(components::color_swatch("处理器 · Cyan",p.cpu,p))
                             .child(components::color_swatch("内存 · Violet",p.memory,p))
                             .child(components::color_swatch("磁盘 · Amber",p.disk,p))

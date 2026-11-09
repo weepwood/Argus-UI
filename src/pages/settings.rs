@@ -8,8 +8,8 @@ use crate::{
 
 pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>) -> AnyElement {
     let p=shell.palette();
-    v_flex().w_full().p(px(26.)).gap(px(19.))
-        .child(v_flex().gap(px(6.))
+    div().flex().flex_col().w_full().p(px(26.)).gap(px(19.))
+        .child(div().flex().flex_col().gap(px(6.))
             .child(components::heading("外观设置",p))
             .child(components::small_label("修改后立即生效；当前版本不持久化这些偏好",p)))
         .child(
@@ -19,7 +19,7 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>) -> AnyEle
                 .child(components::small_label("统一切换背景、边框、文字、状态色和组件底色",p))
                 .child(div().h(px(16.)))
                 .child(
-                    h_flex().gap(px(9.))
+                    div().flex().gap(px(9.))
                         .child(components::button("light-mode","浅色 Light",p,
                             if shell.appearance==Appearance::Light {ButtonTone::Primary} else {ButtonTone::Normal})
                             .on_click(cx.listener(|this,_,window,cx|this.set_theme(Appearance::Light,window,cx))))
@@ -34,7 +34,7 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>) -> AnyEle
                 .child(div().h(px(7.)))
                 .child(components::small_label("决定演示数据行高度，方便高信息密度工作台复用",p))
                 .child(div().h(px(16.)))
-                .child(h_flex().gap(px(9.))
+                .child(div().flex().gap(px(9.))
                     .child(components::button("comfortable","舒适 43px",p,
                         if shell.density==Density::Comfortable {ButtonTone::Primary} else {ButtonTone::Normal})
                         .on_click(cx.listener(|this,_,_,cx|{this.density=Density::Comfortable;cx.notify();})))
@@ -48,7 +48,7 @@ pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>) -> AnyEle
                 .child(div().h(px(7.)))
                 .child(components::small_label("切换全宽侧边栏与 68px 图标导轨",p))
                 .child(div().h(px(16.)))
-                .child(h_flex().gap(px(9.))
+                .child(div().flex().gap(px(9.))
                     .child(components::button("sidebar-wide","完整侧栏",p,
                         if !shell.sidebar_compact {ButtonTone::Primary} else {ButtonTone::Normal})
                         .on_click(cx.listener(|this,_,_,cx|{this.sidebar_compact=false;cx.notify();})))

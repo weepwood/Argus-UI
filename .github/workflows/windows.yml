@@ -19,6 +19,8 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
       - name: Resolve pinned GPUI Kit dependencies
         run: cargo generate-lockfile
       - name: Format source before checking

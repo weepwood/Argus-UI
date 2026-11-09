@@ -1,5 +1,6 @@
 //! Application shell: global navigation and a small typed state machine.
 //! Domain views live in pages/; generic primitives live in components/.
+use gpui_kit::prelude::FluentBuilder as _;
 use gpui_kit::{
     *,
     assets::IconName,
@@ -141,7 +142,7 @@ impl Shell {
         let p = self.palette();
         let compact = self.sidebar_compact;
         let nav = Page::ALL.into_iter().map(|page| self.nav_item(page,cx)).collect::<Vec<_>>();
-        v_flex()
+        div().flex().flex_col()
             .h_full()
             .w(px(if compact {68.} else {218.}))
             .flex_shrink_0()
@@ -149,7 +150,7 @@ impl Shell {
             .border_color(p.border)
             .bg(p.background)
             .child(
-                h_flex().h(px(72.)).px(px(17.)).items_center().gap(px(11.))
+                div().flex().h(px(72.)).px(px(17.)).items_center().gap(px(11.))
                 .child(
                     div().size(px(34.)).rounded(px(8.))
                         .bg(p.accent).text_color(p.accent_ink)
@@ -157,13 +158,13 @@ impl Shell {
                         .font_weight(FontWeight::BOLD).text_size(px(17.)).child("A")
                 )
                 .when(!compact, |d| d.child(
-                    v_flex().gap(px(1.))
+                    div().flex().flex_col().gap(px(1.))
                         .child(div().text_size(px(15.)).font_weight(FontWeight::SEMIBOLD).text_color(p.text).child("Argus UI"))
                         .child(div().text_size(px(10.)).text_color(p.faint).child("NATIVE STARTER"))
                 ))
             )
             .child(
-                v_flex().px(px(12.)).gap(px(4.))
+                div().flex().flex_col().px(px(12.)).gap(px(4.))
                 .when(!compact,|d|d.child(
                     div().px(px(10.)).pb(px(8.)).text_size(px(10.))
                       .text_color(p.faint).child("工作空间")
@@ -172,13 +173,13 @@ impl Shell {
             )
             .child(div().flex_1())
             .child(
-                v_flex().p(px(12.)).gap(px(11.))
+                div().flex().flex_col().p(px(12.)).gap(px(11.))
                     .child(components::divider(p))
                     .child(
-                        h_flex().items_center().gap(px(9.))
+                        div().flex().items_center().gap(px(9.))
                         .child(div().size(px(31.)).rounded(px(16.)).bg(p.control)
                             .flex().items_center().justify_center().text_color(p.muted).child("W"))
-                        .when(!compact,|d|d.child(v_flex().gap(px(2.))
+                        .when(!compact,|d|d.child(div().flex().flex_col().gap(px(2.))
                             .child(div().text_size(px(12.)).font_weight(FontWeight::MEDIUM).text_color(p.text).child("Workspace"))
                             .child(div().text_size(px(10.)).text_color(p.faint).child("Local demo"))))
                     )
@@ -188,22 +189,22 @@ impl Shell {
     fn header(&self, cx: &mut Context<Self>) -> AnyElement {
         let p=self.palette();
         let page=self.page;
-        h_flex()
+        div().flex()
             .h(px(73.)).px(px(26.)).flex_shrink_0().items_center()
             .justify_between().border_b_1().border_color(p.border)
             .bg(p.surface)
             .child(
-                h_flex().gap(px(14.)).items_center()
+                div().flex().gap(px(14.)).items_center()
                 .child(
                     components::button("sidebar-toggle",if self.sidebar_compact {"展开"} else {"收起"},p,ButtonTone::Ghost)
                        .on_click(cx.listener(|this,_,_,cx| {this.sidebar_compact=!this.sidebar_compact;cx.notify();}))
                 )
-                .child(v_flex().gap(px(4.))
+                .child(div().flex().flex_col().gap(px(4.))
                     .child(div().text_size(px(19.)).font_weight(FontWeight::SEMIBOLD).text_color(p.text).child(page.title()))
                     .child(components::small_label(page.subtitle(),p)))
             )
             .child(
-                h_flex().items_center().gap(px(10.))
+                div().flex().items_center().gap(px(10.))
                     .child(components::tag("DEMO DATA",p,false))
                     .child(components::button("header-theme",
                         if self.appearance==Appearance::Light {"深色模式"} else {"浅色模式"},p,ButtonTone::Normal)
@@ -227,20 +228,20 @@ impl Render for Shell {
             Page::Components => pages::showcase::render(self,window,cx),
             Page::Settings => pages::settings::render(self,window,cx),
         };
-        h_flex().size_full().bg(p.background)
+        div().flex().size_full().bg(p.background)
             .text_color(p.text)
             .font_family("Segoe UI Variable")
             .text_size(px(13.))
             .child(sidebar)
             .child(
-                v_flex().flex_1().min_w_0().h_full()
+                div().flex().flex_col().flex_1().min_w_0().h_full()
                     .child(header)
                     .child(
-                        div().flex_1().min_h_0().overflow_y_scroll()
+                        div().flex_1().min_h_0().overflow_y_scrollbar()
                             .child(content)
                     )
                     .child(
-                        h_flex().h(px(32.)).px(px(22.)).flex_shrink_0().items_center()
+                        div().flex().h(px(32.)).px(px(22.)).flex_shrink_0().items_center()
                             .justify_between().border_t_1().border_color(p.border)
                             .bg(p.surface).text_size(px(11.)).text_color(p.faint)
                             .child("Argus UI  /  Rust + GPUI Kit")
