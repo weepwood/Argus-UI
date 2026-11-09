@@ -56,6 +56,8 @@ src/
 .github/workflows/windows.yml
 ```
 
+See [Architecture](docs/ARCHITECTURE.md) and [Design specification](docs/DESIGN.md) for structure and visual rules.
+
 ## Customization
 
 Edit `src/design.rs` for colors, spacing, and typography. Replace sample records in `src/data.rs` with your own strongly typed models. Add a page in `src/pages/`, and route to it from `src/app.rs`. Do not move domain-specific state into reusable visual components.
