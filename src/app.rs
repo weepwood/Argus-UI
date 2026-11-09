@@ -180,7 +180,7 @@ impl Shell {
                             .flex().items_center().justify_center().text_color(p.muted).child("W"))
                         .when(!compact,|d|d.child(v_flex().gap(px(2.))
                             .child(div().text_size(px(12.)).font_weight(FontWeight::MEDIUM).text_color(p.text).child("Workspace"))
-                            .child(div().text_size(px(10.)).text_color(p.faint).child("Local demo")))
+                            .child(div().text_size(px(10.)).text_color(p.faint).child("Local demo"))))
                     )
             )
             .into_any_element()
