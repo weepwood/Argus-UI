@@ -1,10 +1,10 @@
 # Argus UI
 
-A reusable, native Windows desktop UI starter built with **Rust + GPUI Kit**, with a restrained Fluent-inspired visual language based on the public design references of [Argus](https://github.com/Ray-lea/Argus).
+A reusable, native Windows component gallery built with **Rust + GPUI Kit**, closely following the public interface design of [Argus](https://github.com/Ray-lea/Argus).
 
-> This is an independent scaffold, **not** a fork of Argus, and contains no copied Argus source code, vendor patches, branding assets, or system-management functionality.
+> This is an independent UI component project. It does not include Argus source code, vendor patches, product assets, or system-management functionality.
 
-The scaffold includes a desktop shell, compact sidebar, navigation, overview, sample process table, component gallery, settings, light/dark themes, and a Windows GitHub Actions build.
+The project packages the reference layout as reusable components: command bar, horizontal page navigation, CPU/memory/disk/network/GPU summary strip, dense process table, right-side detail rail, status bar, and component gallery. It includes light/dark themes and local synthetic fixtures.
 
 ## Quick start
 
@@ -29,11 +29,11 @@ cargo build --release --locked
 ## Features
 
 - Independent Rust/GPUI Kit native window; no Electron or embedded WebView.
-- Fluent-like density, 1px outlines, small radii, soft layered surfaces, Segoe typography.
-- Collapsible sidebar, four navigable pages, theme and density controls.
-- Showcase for buttons, badges, panels, progress meters, and inline toolbars.
-- A mock process list with search, CPU/memory sorting, row selection, and detail panel.
-- Reusable design tokens and simple stat/chart visuals.
+- Mica-backed window, compact command bar, horizontal navigation, and reference-aligned split pane.
+- Five resource summaries with reusable line-chart metrics.
+- Dense process rows with search, sorting, selection, grouping, and a device/detail rail.
+- Secondary performance, services, startup, connections, history, and settings screens.
+- Reusable semantic colors, toolbar controls, panels, status tags, progress bars, and chart builders.
 - Windows CI and runnable release build artifact.
 
 **Demo data is synthetic and local; no privileged services, telemetry, or real process operations are performed.**
@@ -49,9 +49,10 @@ src/
   data.rs                   # typed demo models
   pages/
     mod.rs
-    overview.rs             # metrics / mini visualization
-    processes.rs            # interactive demo table
-    showcase.rs             # component catalogue
+    overview.rs             # performance charts
+    processes.rs            # process table and detail rail
+    catalog.rs              # reusable secondary table screens
+    showcase.rs             # component gallery
     settings.rs             # theme / density controls
 .github/workflows/windows.yml
 ```
@@ -64,11 +65,11 @@ Edit `src/design.rs` for colors, spacing, and typography. Replace sample records
 
 ## Relationship to Argus
 
-The project borrows **design ideas** (Fluent-inspired surfaces, restrained accent, stable numerics, information hierarchy), not implementation code. [Argus](https://github.com/Ray-lea/Argus) is separately maintained under AGPL-3.0-or-later; consult its license before copying any code or resources. This independently authored scaffold is MIT-licensed.
+The project follows [Argus](https://github.com/Ray-lea/Argus)'s public visual structure and information hierarchy while independently implementing its components and fixtures. It contains no Argus source code or product assets. Argus is licensed under AGPL-3.0-or-later; this repository's independent implementation remains MIT-licensed.
 
 ## Status
 
-Initial scaffold. The included GitHub Actions workflow is the authoritative Windows build check; no claim is made about runtime screenshots until tested on a Windows desktop.
+The Windows Actions workflow builds, checks, tests, and packages the native component gallery.
 
 ## License
 
