@@ -12,6 +12,7 @@ use crate::{
     design::{Appearance, Density, Palette},
     pages,
 };
+use gpui_kit::component::scroll::ScrollableElement as _;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Page {
