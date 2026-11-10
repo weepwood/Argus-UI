@@ -37,10 +37,8 @@ impl Density {
 pub struct Palette {
     pub background: Hsla,
     pub surface: Hsla,
-    pub elevated: Hsla,
     pub control: Hsla,
     pub border: Hsla,
-    pub border_strong: Hsla,
     pub text: Hsla,
     pub muted: Hsla,
     pub faint: Hsla,
@@ -53,7 +51,6 @@ pub struct Palette {
     pub disk: Hsla,
     pub network: Hsla,
     pub gpu: Hsla,
-    pub success: Hsla,
     pub danger: Hsla,
 }
 fn hex(value: u32) -> Hsla { rgb(value).into() }
@@ -63,10 +60,8 @@ impl Palette {
             Appearance::Light => Self {
                 background: hex(0xf3f3f5),
                 surface: hex(0xffffff),
-                elevated: hex(0xfafafb),
                 control: hex(0xf5f5f7),
                 border: hex(0xe4e5e9),
-                border_strong: hex(0xd3d5dc),
                 text: hex(0x23252c),
                 muted: hex(0x6b6f7b),
                 faint: hex(0x9397a2),
@@ -79,16 +74,13 @@ impl Palette {
                 disk: hex(0xc58c32),
                 network: hex(0x249a68),
                 gpu: hex(0xd65086),
-                success: hex(0x249a68),
                 danger: hex(0xc93838),
             },
             Appearance::Dark => Self {
                 background: hex(0x202124),
                 surface: hex(0x2a2b2f),
-                elevated: hex(0x303137),
                 control: hex(0x34363b),
                 border: hex(0x41434a),
-                border_strong: hex(0x585b64),
                 text: hex(0xf1f2f5),
                 muted: hex(0xb0b3bc),
                 faint: hex(0x878b96),
@@ -101,7 +93,6 @@ impl Palette {
                 disk: hex(0xf3bc67),
                 network: hex(0x64d69f),
                 gpu: hex(0xf686b4),
-                success: hex(0x64d69f),
                 danger: hex(0xff786f),
             },
         }
