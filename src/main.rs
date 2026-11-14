@@ -6,10 +6,12 @@ compile_error!(
 );
 
 mod app;
+mod backdrop;
 mod components;
 mod data;
 mod design;
 mod pages;
+mod typography;
 
 use gpui_kit::assets::Assets;
 use gpui_kit::*;
@@ -17,10 +19,11 @@ use gpui_kit::*;
 fn main() {
     gpui_kit::application().with_assets(Assets).run(|cx| {
         gpui_kit::init(cx);
+        backdrop::install_surface(cx);
         let opts = WindowOptions {
             window_bounds: Some(WindowBounds::centered(size(px(1600.), px(1000.)), cx)),
             window_min_size: Some(size(px(1150.), px(740.))),
-            window_background: WindowBackgroundAppearance::MicaBackdrop,
+            window_background: backdrop::Backdrop::auto().appearance(),
             ..Default::default()
         };
         gpui_kit::open_window(opts, cx, |window, cx| {

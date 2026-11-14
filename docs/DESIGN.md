@@ -14,9 +14,11 @@ The desktop shell follows the same information hierarchy across its pages:
 
 ## Visual rules
 
-- Use Windows Mica as the window backdrop and restrained translucent surfaces over it.
+- Use a native DWM backdrop (Mica by default, with Mica Alt, Acrylic blur, transparent and solid as alternatives) and restrained translucent surfaces over it. The root layer must stay translucent for the material to show through; see `src/backdrop.rs` and `Palette::apply_material`.
+- Keep text on an opaque plate. GPUI disables ClearType on translucent windows, so grayscale glyph edges must not blend into wallpaper detail leaking through a panel. `Palette::text_plate` pre-composes the layer over the opaque window colour and forces it opaque in Crisp mode; Glass mode and the Sharp/ClearType mode are explicit opt-outs.
 - Preserve the reference's compact information density, thin separators, flat surfaces, and modest 5–8px corner radii.
-- Use Segoe UI Variable, 11–13px labels, restrained medium weights, and stable numeric columns.
+- Use a probed Segoe UI face with an explicit Simplified Chinese fallback chain, 10–13px labels, restrained medium weights, `tnum` tabular figures and a 1.4 line height (`src/typography.rs`). Keep secondary labels high-contrast in translucent modes, where grayscale antialiasing thins light strokes.
+- Rasterize glyphs from DirectWrite's LCD coverage folded by stripe luminance rather than a fresh grayscale pass; apply Skia mask gamma to dark ink and brightness-attenuated contrast to light ink. See `vendor/gpui-pre-windows/PATCHES.md`.
 - Give each resource its own color: CPU cyan, memory violet, disk amber, network green, GPU pink. Keep navigation and selection on the system blue accent.
 - Make selection, hover, muted text, and chart colors semantic roles so both appearance modes share the same components.
 - Keep chart lines and resource labels readable at both wide and minimum window sizes.
@@ -48,6 +50,8 @@ The complete light and dark palettes are defined in `src/design.rs`.
 | Disk | `#D78A00` | `#F0B64C` |
 | Network | `#1CA65B` | `#56D39A` |
 | GPU | `#E13D79` | `#F277A9` |
+
+The hex values above are the solid-mode palette. With a translucent backdrop, `Palette::apply_material` replaces the window and card fills with layered alpha surfaces, keeps a faint root tint, and uses low-alpha ink for strokes and hover. Text, accent, and resource colours stay opaque so dense tables keep their contrast. Solid mode remains the fallback on unsupported Windows builds.
 
 ## Scope
 

@@ -45,7 +45,7 @@ fn table_header(p: Palette, totals: (String, String, String, String, String, Str
         .items_center()
         .border_b_1()
         .border_color(p.border)
-        .bg(p.surface.opacity(0.25))
+        .bg(p.text_plate(p.surface, 0.25))
         .text_color(p.muted)
         .child(div().flex_1().min_w_0().text_size(px(10.)).child("名称  ↑"))
         .child(numeric_cell(COLUMNS[0].0, "PID", p.muted, p))
@@ -78,7 +78,7 @@ fn process_row(shell: &Shell, process: Process, cx: &mut Context<Shell>) -> AnyE
         .bg(if selected {
             p.accent_soft
         } else {
-            p.surface.opacity(0.52)
+            p.text_plate(p.surface, 0.52)
         })
         .hover(move |s| s.bg(p.hover.opacity(0.82)))
         .text_size(px(11.))
@@ -189,7 +189,7 @@ fn group_header(category: &'static str, rows: &[Process], p: Palette) -> Div {
         .items_center()
         .border_b_1()
         .border_color(p.border)
-        .bg(p.surface.opacity(0.16))
+        .bg(p.text_plate(p.surface, 0.16))
         .child(
             div()
                 .flex_1()
@@ -378,7 +378,7 @@ fn detail_rail(p: Palette, selected: Option<Process>) -> Div {
                     .rounded(px(7.))
                     .border_1()
                     .border_color(p.border)
-                    .bg(p.surface.opacity(0.32))
+                    .bg(p.text_plate(p.surface, 0.32))
                     .child(Icon::new(IconName::Info).size(px(15.)).text_color(p.accent))
                     .child(components::small_label(
                         "选择进程行可查看对应的统计信息。此视图仅使用本地模拟数据。",
@@ -444,7 +444,7 @@ fn detail_rail(p: Palette, selected: Option<Process>) -> Div {
         .flex_col()
         .border_l_1()
         .border_color(p.border)
-        .bg(p.surface.opacity(0.28))
+        .bg(p.text_plate(p.surface, 0.28))
         .child(header)
         .child(div().flex_1().min_h_0().overflow_y_scrollbar().child(body))
 }

@@ -11,6 +11,13 @@ publish = false
 [dependencies]
 gpui-kit = "=0.8.0"
 
+# Local copy of the upstream Apache-2.0 Windows backend. The stock 0.3.9
+# rasterizes translucent-window text as a single-channel grayscale bitmap;
+# the local patch keeps DirectWrite's LCD coverage and folds it by luminance,
+# preserving subpixel spatial detail (see vendor/gpui-pre-windows/PATCHES.md).
+[patch.crates-io]
+gpui-pre-windows = { path = "vendor/gpui-pre-windows" }
+
 [profile.dev]
 debug = "line-tables-only"
 

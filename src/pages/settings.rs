@@ -1,15 +1,16 @@
 //! Compact appearance and density settings using the shared panel grammar.
 use crate::{
     app::Shell,
+    backdrop::{self, Backdrop},
     components::{self, ButtonTone},
-    design::{Appearance, Density},
+    design::{Appearance, Density, MaterialClarity},
 };
 use gpui_kit::*;
 
 fn setting_row(
     p: crate::design::Palette,
     title: &'static str,
-    description: &'static str,
+    description: impl Into<SharedString>,
     control: impl IntoElement,
 ) -> Div {
     div()
@@ -101,10 +102,82 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 cx.notify();
             })),
         );
+    let clarity = div()
+        .flex()
+        .gap(px(6.))
+        .children(MaterialClarity::ALL.map(|mode| {
+            components::button(
+                format!("clarity-{}", mode.id()),
+                mode.title(),
+                p,
+                if shell.clarity == mode {
+                    ButtonTone::Primary
+                } else {
+                    ButtonTone::Normal
+                },
+            )
+            .on_click(cx.listener(move |this, _, window, cx| {
+                this.set_clarity(mode, window, cx);
+            }))
+        }));
+    let mut backdrop_rows: Vec<AnyElement> = Vec::new();
+    for chunk in Backdrop::ALL.chunks(3) {
+        let mut row = div().flex().gap(px(6.));
+        for mode in chunk {
+            let mode = *mode;
+            let tone = if shell.clarity == MaterialClarity::Sharp {
+                ButtonTone::Ghost
+            } else if shell.backdrop == mode {
+                ButtonTone::Primary
+            } else if mode.is_available() {
+                ButtonTone::Normal
+            } else {
+                ButtonTone::Ghost
+            };
+            row = row.child(
+                components::button(format!("backdrop-{}", mode.id()), mode.title(), p, tone)
+                    .on_click(cx.listener(move |this, _, window, cx| {
+                        this.set_backdrop(mode, window, cx);
+                    })),
+            );
+        }
+        backdrop_rows.push(row.into_any_element());
+    }
+    let backdrop_buttons = div()
+        .flex()
+        .flex_col()
+        .gap(px(6.))
+        .items_end()
+        .children(backdrop_rows);
+
     let panel = components::panel(p)
         .w(px(760.))
         .max_w_full()
         .flex_col()
+        .child(setting_row(
+            p,
+            "文字渲染",
+            shell.clarity.hint(),
+            clarity,
+        ))
+        .child(setting_row(
+            p,
+            "窗口背景材质",
+            shell.backdrop.hint(),
+            backdrop_buttons,
+        ))
+        .child(setting_row(
+            p,
+            "系统材质支持",
+            backdrop::support_note(),
+            components::tag("DWM 自动检测", p, false),
+        ))
+        .child(setting_row(
+            p,
+            "抗锯齿机制",
+            "GPUI 仅在窗口不透明时启用 ClearType 子像素渲染；半透明材质下走 DirectWrite 灰度抗锯齿。",
+            components::tag("GPUI / DirectWrite", p, false),
+        ))
         .child(setting_row(
             p,
             "颜色模式",

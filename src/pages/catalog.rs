@@ -235,7 +235,7 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
                         .items_center()
                         .border_b_1()
                         .border_color(p.border)
-                        .bg(p.surface.opacity(0.25))
+                        .bg(p.text_plate(p.surface, 0.25))
                         .children(columns.iter().map(|column| {
                             div()
                                 .flex_1()

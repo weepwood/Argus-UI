@@ -1,8 +1,9 @@
 //! Native shell: command bar, Argus-style page tabs, resource strip, and content.
 use crate::{
+    backdrop::Backdrop,
     components,
     data::{CPU_SERIES, DISK_SERIES, GPU_SERIES, MEMORY_SERIES, NET_SERIES, SortBy},
-    design::{Appearance, Density, Palette},
+    design::{Appearance, Density, MaterialClarity, Palette},
     pages,
 };
 use gpui_kit::{
@@ -86,6 +87,8 @@ impl ProcessView {
 pub struct Shell {
     pub(crate) page: Page,
     pub(crate) appearance: Appearance,
+    pub(crate) backdrop: Backdrop,
+    pub(crate) clarity: MaterialClarity,
     pub(crate) density: Density,
     pub(crate) view: ProcessView,
     pub(crate) sort: SortBy,
@@ -118,6 +121,8 @@ impl Shell {
         Self {
             page: Page::Processes,
             appearance: Appearance::Light,
+            backdrop: Backdrop::auto(),
+            clarity: MaterialClarity::Crisp,
             density: Density::Comfortable,
             view: ProcessView::Apps,
             sort: SortBy::Cpu,
@@ -133,8 +138,18 @@ impl Shell {
         }
     }
 
+    /// `Sharp` trades the DWM material for an opaque window so GPUI can use
+    /// ClearType; every other mode keeps the material the user picked.
+    pub(crate) fn effective_backdrop(&self) -> Backdrop {
+        if self.clarity == MaterialClarity::Sharp {
+            Backdrop::Opaque
+        } else {
+            self.backdrop
+        }
+    }
+
     pub(crate) fn palette(&self) -> Palette {
-        Palette::new(self.appearance)
+        Palette::new(self.appearance, self.effective_backdrop(), self.clarity)
     }
 
     pub(crate) fn set_theme(
@@ -152,6 +167,47 @@ impl Shell {
             Some(window),
             cx,
         );
+        cx.notify();
+    }
+
+    /// Change how much material is allowed behind text. `Sharp` drops the
+    /// backdrop entirely: GPUI only enables ClearType on opaque windows.
+    pub(crate) fn set_clarity(
+        &mut self,
+        clarity: MaterialClarity,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.clarity == clarity {
+            return;
+        }
+        self.clarity = clarity;
+        window.set_background_appearance(self.effective_backdrop().appearance());
+        cx.set_text_rendering_mode(if clarity == MaterialClarity::Sharp {
+            TextRenderingMode::Subpixel
+        } else {
+            TextRenderingMode::PlatformDefault
+        });
+        cx.notify();
+    }
+
+    /// Switch the DWM material at runtime and repaint the translucent layers.
+    pub(crate) fn set_backdrop(
+        &mut self,
+        mode: Backdrop,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.backdrop == mode || !mode.is_available() {
+            return;
+        }
+        self.backdrop = mode;
+        // Picking a material explicitly leaves the ClearType-only mode.
+        if self.clarity == MaterialClarity::Sharp {
+            self.clarity = MaterialClarity::Crisp;
+            cx.set_text_rendering_mode(TextRenderingMode::PlatformDefault);
+        }
+        window.set_background_appearance(self.effective_backdrop().appearance());
         cx.notify();
     }
 
@@ -204,7 +260,7 @@ impl Shell {
             .gap(px(10.))
             .border_b_1()
             .border_color(p.border)
-            .bg(p.surface.opacity(0.58))
+            .bg(p.text_plate(p.surface, 0.58))
             .child(
                 div()
                     .flex()
@@ -249,7 +305,7 @@ impl Shell {
                     .rounded(px(6.))
                     .border_1()
                     .border_color(p.border)
-                    .bg(p.surface.opacity(0.78))
+                    .bg(p.text_plate(p.surface, 0.78))
                     .text_color(p.muted)
                     .child(Icon::new(IconName::Search).ml(px(10.)).size(px(16.)))
                     .child(search),
@@ -368,7 +424,7 @@ impl Shell {
             .gap(px(4.))
             .border_b_1()
             .border_color(p.border)
-            .bg(p.surface.opacity(0.4))
+            .bg(p.text_plate(p.surface, 0.4))
             .children(Page::ALL.into_iter().map(|page| {
                 let selected = self.page == page;
                 div()
@@ -487,7 +543,7 @@ impl Shell {
             .justify_between()
             .border_t_1()
             .border_color(p.border)
-            .bg(p.surface.opacity(0.52))
+            .bg(p.text_plate(p.surface, 0.52))
             .text_size(px(10.))
             .text_color(p.faint)
             .child(
@@ -518,6 +574,7 @@ impl Shell {
                                 "每 1 秒刷新"
                             }),
                     )
+                    .child(components::tag(self.effective_backdrop().title(), p, true))
                     .child(components::tag("标准权限", p, false)),
             )
             .into_any_element()
@@ -544,7 +601,7 @@ impl Render for Shell {
             .font_family("Segoe UI Variable")
             .text_size(px(12.))
             .text_color(p.text)
-            .bg(p.background.opacity(0.16))
+            .bg(p.background)
             .child(self.toolbar(cx))
             .child(self.page_tabs(cx))
             .child(self.resource_strip())

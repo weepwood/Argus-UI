@@ -72,7 +72,7 @@ pub fn toolbar_button(
         .bg(if selected {
             p.accent_soft
         } else {
-            p.surface.opacity(0.72)
+            p.text_plate(p.surface, 0.72)
         })
         .text_color(if selected { p.accent } else { p.text })
         .text_size(px(12.))
@@ -84,7 +84,7 @@ pub fn toolbar_button(
 
 pub fn panel(p: Palette) -> Div {
     div()
-        .bg(p.raised.opacity(0.42))
+        .bg(p.text_plate(p.raised, 0.42))
         .border_1()
         .border_color(p.border_strong.opacity(0.45))
         .rounded(px(7.))
@@ -194,7 +194,7 @@ impl<'a> ResourceMetric<'a> {
             .flex()
             .flex_col()
             .when(border_right, |d| d.border_r_1().border_color(p.border))
-            .bg(p.surface.opacity(0.68))
+            .bg(p.text_plate(p.surface, 0.68))
             .child(
                 div()
                     .flex()
