@@ -1,70 +1,162 @@
-//! Appearance preferences are live state; persistence can be added via a service.
-use gpui_kit::*;
+//! Compact appearance and density settings using the shared panel grammar.
 use crate::{
     app::Shell,
     components::{self, ButtonTone},
     design::{Appearance, Density},
 };
+use gpui_kit::*;
 
-pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>) -> AnyElement {
-    let p=shell.palette();
-    div().flex().flex_col().w_full().p(px(26.)).gap(px(19.))
-        .child(div().flex().flex_col().gap(px(6.))
-            .child(components::heading("外观设置",p))
-            .child(components::small_label("修改后立即生效；当前版本不持久化这些偏好",p)))
+fn setting_row(
+    p: crate::design::Palette,
+    title: &'static str,
+    description: &'static str,
+    control: impl IntoElement,
+) -> Div {
+    div()
+        .flex()
+        .min_h(px(66.))
+        .px(px(15.))
+        .items_center()
+        .justify_between()
+        .border_b_1()
+        .border_color(p.border.opacity(0.7))
         .child(
-            components::panel(p).p(px(21.))
-                .child(div().text_size(px(14.)).font_weight(FontWeight::SEMIBOLD).child("主题"))
-                .child(div().h(px(7.)))
-                .child(components::small_label("统一切换背景、边框、文字、状态色和组件底色",p))
-                .child(div().h(px(16.)))
-                .child(
-                    div().flex().gap(px(9.))
-                        .child(components::button("light-mode","浅色 Light",p,
-                            if shell.appearance==Appearance::Light {ButtonTone::Primary} else {ButtonTone::Normal})
-                            .on_click(cx.listener(|this,_,window,cx|this.set_theme(Appearance::Light,window,cx))))
-                        .child(components::button("dark-mode","深色 Dark",p,
-                            if shell.appearance==Appearance::Dark {ButtonTone::Primary} else {ButtonTone::Normal})
-                            .on_click(cx.listener(|this,_,window,cx|this.set_theme(Appearance::Dark,window,cx))))
-                )
+            div()
+                .flex()
+                .flex_col()
+                .gap(px(3.))
+                .child(div().text_size(px(12.)).text_color(p.text).child(title))
+                .child(components::small_label(description, p)),
+        )
+        .child(control.into_element())
+}
+
+pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) -> AnyElement {
+    let p = shell.palette();
+    let theme = div()
+        .flex()
+        .gap(px(6.))
+        .child(
+            components::button(
+                "light-mode",
+                "浅色",
+                p,
+                if shell.appearance == Appearance::Light {
+                    ButtonTone::Primary
+                } else {
+                    ButtonTone::Normal
+                },
+            )
+            .on_click(
+                cx.listener(|this, _, window, cx| this.set_theme(Appearance::Light, window, cx)),
+            ),
         )
         .child(
-            components::panel(p).p(px(21.))
-                .child(div().text_size(px(14.)).font_weight(FontWeight::SEMIBOLD).child("表格密度"))
-                .child(div().h(px(7.)))
-                .child(components::small_label("决定演示数据行高度，方便高信息密度工作台复用",p))
-                .child(div().h(px(16.)))
-                .child(div().flex().gap(px(9.))
-                    .child(components::button("comfortable","舒适 43px",p,
-                        if shell.density==Density::Comfortable {ButtonTone::Primary} else {ButtonTone::Normal})
-                        .on_click(cx.listener(|this,_,_,cx|{this.density=Density::Comfortable;cx.notify();})))
-                    .child(components::button("compact","紧凑 34px",p,
-                        if shell.density==Density::Compact {ButtonTone::Primary} else {ButtonTone::Normal})
-                        .on_click(cx.listener(|this,_,_,cx|{this.density=Density::Compact;cx.notify();}))))
+            components::button(
+                "dark-mode",
+                "深色",
+                p,
+                if shell.appearance == Appearance::Dark {
+                    ButtonTone::Primary
+                } else {
+                    ButtonTone::Normal
+                },
+            )
+            .on_click(
+                cx.listener(|this, _, window, cx| this.set_theme(Appearance::Dark, window, cx)),
+            ),
+        );
+    let density = div()
+        .flex()
+        .gap(px(6.))
+        .child(
+            components::button(
+                "comfortable-density",
+                "舒适",
+                p,
+                if shell.density == Density::Comfortable {
+                    ButtonTone::Primary
+                } else {
+                    ButtonTone::Normal
+                },
+            )
+            .on_click(cx.listener(|this, _, _, cx| {
+                this.density = Density::Comfortable;
+                cx.notify();
+            })),
         )
         .child(
-            components::panel(p).p(px(21.))
-                .child(div().text_size(px(14.)).font_weight(FontWeight::SEMIBOLD).child("导航布局"))
-                .child(div().h(px(7.)))
-                .child(components::small_label("切换全宽侧边栏与 68px 图标导轨",p))
-                .child(div().h(px(16.)))
-                .child(div().flex().gap(px(9.))
-                    .child(components::button("sidebar-wide","完整侧栏",p,
-                        if !shell.sidebar_compact {ButtonTone::Primary} else {ButtonTone::Normal})
-                        .on_click(cx.listener(|this,_,_,cx|{this.sidebar_compact=false;cx.notify();})))
-                    .child(components::button("sidebar-narrow","紧凑导轨",p,
-                        if shell.sidebar_compact {ButtonTone::Primary} else {ButtonTone::Normal})
-                        .on_click(cx.listener(|this,_,_,cx|{this.sidebar_compact=true;cx.notify();}))))
-        )
-        .child(
-            components::panel(p).p(px(21.))
-                .child(div().text_size(px(14.)).font_weight(FontWeight::SEMIBOLD).child("动画策略 · 预留"))
-                .child(div().h(px(7.)))
-                .child(components::small_label("用于后续 Motion 组件集成的状态；当前示例没有持续动画",p))
-                .child(div().h(px(16.)))
-                .child(components::button("motion-toggle",
-                    if shell.animations {"状态：允许动效"} else {"状态：减少动效"},p,ButtonTone::Normal)
-                    .on_click(cx.listener(|this,_,_,cx|{this.animations=!this.animations;cx.notify();})))
-        )
+            components::button(
+                "compact-density",
+                "紧凑",
+                p,
+                if shell.density == Density::Compact {
+                    ButtonTone::Primary
+                } else {
+                    ButtonTone::Normal
+                },
+            )
+            .on_click(cx.listener(|this, _, _, cx| {
+                this.density = Density::Compact;
+                cx.notify();
+            })),
+        );
+    let panel = components::panel(p)
+        .w(px(760.))
+        .max_w_full()
+        .flex_col()
+        .child(setting_row(
+            p,
+            "颜色模式",
+            "切换整个界面的浅色或深色语义色。",
+            theme,
+        ))
+        .child(setting_row(
+            p,
+            "进程行密度",
+            "调整进程表行高，同时保留稳定的列对齐。",
+            density,
+        ))
+        .child(setting_row(
+            p,
+            "右侧详情栏",
+            "在进程页显示硬件摘要或选中进程详情。",
+            components::button(
+                "details-setting",
+                if shell.show_details {
+                    "显示"
+                } else {
+                    "隐藏"
+                },
+                p,
+                ButtonTone::Normal,
+            )
+            .on_click(cx.listener(|this, _, _, cx| {
+                this.show_details = !this.show_details;
+                cx.notify();
+            })),
+        ))
+        .child(setting_row(
+            p,
+            "图表动效",
+            "控制示例图表进入页面时的绘制动效。",
+            components::button(
+                "motion-setting",
+                if shell.animations { "开启" } else { "关闭" },
+                p,
+                ButtonTone::Normal,
+            )
+            .on_click(cx.listener(|this, _, _, cx| {
+                this.animations = !this.animations;
+                cx.notify();
+            })),
+        ));
+    div()
+        .flex()
+        .size_full()
+        .items_start()
+        .justify_center()
+        .pt(px(18.))
+        .child(panel)
         .into_any_element()
 }

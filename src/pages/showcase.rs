@@ -1,9 +1,12 @@
 //! Interactive visual catalog for the scaffold's reusable builders.
+use crate::{
+    app::Shell,
+    components::{self, ButtonTone},
+};
 use gpui_kit::*;
-use crate::{app::Shell, components::{self, ButtonTone}};
 
-pub fn render(shell:&mut Shell, _: &mut Window,cx:&mut Context<Shell>)->AnyElement{
-    let p=shell.palette();
+pub fn render(shell: &mut Shell, cx: &mut Context<Shell>) -> AnyElement {
+    let p = shell.palette();
     div().flex().flex_col().w_full().p(px(26.)).gap(px(19.))
         .child(
             div().flex().flex_col().gap(px(6.))
