@@ -239,7 +239,11 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
                                 )
                                 .child(components::small_label(subtitle, p)),
                         )
-                        .child(components::tag(format!("{count} / {} 项 · 模拟数据", items.len()), p, true)),
+                        .child(components::tag(
+                            format!("{count} / {} 项 · 模拟数据", items.len()),
+                            p,
+                            true,
+                        )),
                 )
                 .child(
                     div()
@@ -286,7 +290,13 @@ mod tests {
 
     #[test]
     fn matches_terms_across_columns() {
-        let row: Record = ["Windows Search", "运行中", "自动", "SearchHost.exe", "文件索引"];
+        let row: Record = [
+            "Windows Search",
+            "运行中",
+            "自动",
+            "SearchHost.exe",
+            "文件索引",
+        ];
         assert!(matches_query(&row, "windows 运行"));
         assert!(matches_query(&row, "SEARCHHOST 文件"));
         assert!(matches_query(&row, "  "));
