@@ -2,6 +2,8 @@
 #[derive(Clone, Copy, Debug)]
 pub struct Process {
     pub id: u32,
+    /// Synthetic parent identifier; used only for demonstrating tree layout.
+    pub parent_pid: Option<u32>,
     pub name: &'static str,
     pub executable: &'static str,
     pub category: &'static str,
@@ -42,6 +44,7 @@ impl SortBy {
 pub const PROCESSES: &[Process] = &[
     Process {
         id: 4260,
+        parent_pid: Some(8844),
         name: "画图",
         executable: "mspaint.exe",
         category: "应用",
@@ -55,6 +58,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 16071,
+        parent_pid: Some(10028),
         name: "Argus",
         executable: "argus.exe",
         category: "应用",
@@ -68,6 +72,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 15612,
+        parent_pid: Some(8844),
         name: "Git Bash",
         executable: "git-bash.exe",
         category: "应用",
@@ -81,6 +86,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 7324,
+        parent_pid: Some(8844),
         name: "Microsoft Edge",
         executable: "msedge.exe",
         category: "应用",
@@ -94,6 +100,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 17962,
+        parent_pid: Some(8844),
         name: "Notepad++",
         executable: "notepad++.exe",
         category: "应用",
@@ -107,6 +114,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 2204,
+        parent_pid: Some(8844),
         name: "QQ",
         executable: "QQ.exe",
         category: "应用",
@@ -120,6 +128,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 10736,
+        parent_pid: Some(8844),
         name: "Visual Studio Code",
         executable: "Code.exe",
         category: "应用",
@@ -133,6 +142,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 8844,
+        parent_pid: None,
         name: "Windows 资源管理器",
         executable: "explorer.exe",
         category: "应用",
@@ -146,6 +156,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 18283,
+        parent_pid: Some(8844),
         name: "计算器",
         executable: "Calculator.exe",
         category: "后台进程",
@@ -159,6 +170,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 18372,
+        parent_pid: Some(15612),
         name: "控制台窗口主进程",
         executable: "conhost.exe",
         category: "后台进程",
@@ -172,6 +184,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 10028,
+        parent_pid: Some(15612),
         name: "cargo",
         executable: "cargo.exe",
         category: "后台进程",
@@ -185,6 +198,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 18076,
+        parent_pid: Some(8844),
         name: "Everything",
         executable: "Everything.exe",
         category: "后台进程",
@@ -198,6 +212,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 13729,
+        parent_pid: Some(10736),
         name: "Node.js JavaScript Runtime",
         executable: "node.exe",
         category: "后台进程",
@@ -211,6 +226,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 13577,
+        parent_pid: Some(10736),
         name: "rust-analyzer",
         executable: "rust-analyzer.exe",
         category: "后台进程",
@@ -224,6 +240,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 1440,
+        parent_pid: None,
         name: "Desktop Window Manager",
         executable: "dwm.exe",
         category: "Windows 进程",
@@ -237,6 +254,7 @@ pub const PROCESSES: &[Process] = &[
     },
     Process {
         id: 248,
+        parent_pid: None,
         name: "System",
         executable: "System",
         category: "Windows 进程",
@@ -269,6 +287,44 @@ pub fn filtered_sorted(query: &str, sort: SortBy) -> Vec<Process> {
         SortBy::Name => a.name.cmp(b.name),
     });
     rows
+}
+
+
+/// Build a stable parent-first view from already sorted, filtered rows.
+///
+/// Children whose parents are hidden by search become top-level rows. A second
+/// pass also handles malformed/cyclic fixtures without losing records.
+pub fn tree_rows(rows: &[Process]) -> Vec<(Process, usize)> {
+    fn append(
+        process: Process,
+        depth: usize,
+        rows: &[Process],
+        seen: &mut Vec<u32>,
+        output: &mut Vec<(Process, usize)>,
+    ) {
+        if seen.contains(&process.id) {
+            return;
+        }
+        seen.push(process.id);
+        output.push((process, depth));
+        for child in rows.iter().copied().filter(|child| child.parent_pid == Some(process.id)) {
+            append(child, depth + 1, rows, seen, output);
+        }
+    }
+
+    let mut seen = Vec::with_capacity(rows.len());
+    let mut output = Vec::with_capacity(rows.len());
+    for process in rows.iter().copied() {
+        if process.parent_pid.is_none()
+            || !rows.iter().any(|candidate| Some(candidate.id) == process.parent_pid)
+        {
+            append(process, 0, rows, &mut seen, &mut output);
+        }
+    }
+    for process in rows.iter().copied() {
+        append(process, 0, rows, &mut seen, &mut output);
+    }
+    output
 }
 
 pub const CPU_SERIES: &[f32] = &[
@@ -304,5 +360,43 @@ mod tests {
         assert_eq!(all.len(), 1);
         let all = filtered_sorted("", SortBy::Cpu);
         assert!(all.windows(2).all(|pair| pair[0].cpu >= pair[1].cpu));
+    }
+
+
+    #[test]
+    fn tree_places_children_after_their_parent() {
+        let rows = filtered_sorted("", SortBy::Cpu);
+        let tree = tree_rows(&rows);
+        assert_eq!(tree.len(), rows.len());
+        let explorer = tree.iter().position(|(p, _)| p.id == 8844).unwrap();
+        let editor = tree.iter().position(|(p, _)| p.id == 10736).unwrap();
+        let analyzer = tree.iter().position(|(p, _)| p.id == 13577).unwrap();
+        assert!(explorer < editor && editor < analyzer);
+        assert_eq!(tree[explorer].1, 0);
+        assert_eq!(tree[editor].1, 1);
+        assert_eq!(tree[analyzer].1, 2);
+    }
+
+    #[test]
+    fn filtered_child_becomes_root_without_its_parent() {
+        let rows = filtered_sorted("rust-analyzer", SortBy::Name);
+        let tree = tree_rows(&rows);
+        assert_eq!(tree.len(), 1);
+        assert_eq!(tree[0].0.id, 13577);
+        assert_eq!(tree[0].1, 0);
+    }
+
+    #[test]
+    fn tree_recovers_from_cycles_and_empty_input() {
+        assert!(tree_rows(&[]).is_empty());
+        let mut rows = filtered_sorted("", SortBy::Cpu);
+        let left = rows.iter().position(|p| p.id == 8844).unwrap();
+        let right = rows.iter().position(|p| p.id == 10736).unwrap();
+        rows[left].parent_pid = Some(10736);
+        rows[right].parent_pid = Some(8844);
+        let tree = tree_rows(&rows);
+        assert_eq!(tree.len(), rows.len());
+        let ids: std::collections::HashSet<_> = tree.iter().map(|(p, _)| p.id).collect();
+        assert_eq!(ids.len(), rows.len());
     }
 }
