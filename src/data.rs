@@ -367,7 +367,6 @@ mod tests {
         assert!(all.windows(2).all(|pair| pair[0].cpu >= pair[1].cpu));
     }
 
-
     #[test]
     fn tree_places_children_after_their_parent() {
         let rows = filtered_sorted("", SortBy::Cpu);
