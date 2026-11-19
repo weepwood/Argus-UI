@@ -6,7 +6,9 @@
 pub fn matches_fields(query: &str, fields: &[&str]) -> bool {
     query.split_whitespace().all(|word| {
         let term = word.to_lowercase();
-        fields.iter().any(|field| field.to_lowercase().contains(&term))
+        fields
+            .iter()
+            .any(|field| field.to_lowercase().contains(&term))
     })
 }
 
