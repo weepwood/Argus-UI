@@ -172,6 +172,13 @@ impl Shell {
         }
     }
 
+    pub(crate) fn preferences_file_location(&self) -> String {
+        self.preferences_store
+            .as_ref()
+            .map(|store| format!("配置文件：{}", store.path().display()))
+            .unwrap_or_else(|| "未找到可写入的用户设置目录".to_string())
+    }
+
     pub(crate) fn persist_preferences(&mut self) {
         if let Some(store) = &self.preferences_store {
             self.preferences_error = store
