@@ -175,28 +175,21 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
     let (title, subtitle, columns, items) = records(shell.page);
     let filtered: Vec<_> = items
         .iter()
-        .filter(|row| crate::search::matches_fields(&shell.query, *row))
+        .enumerate()
+        .filter(|(_, row)| crate::search::matches_fields(&shell.query, *row))
         .collect();
     let count = filtered.len();
-    let table_rows = filtered.into_iter().map(|row| {
-        div()
-            .flex()
-            .h(px(43.))
-            .px(px(13.))
-            .items_center()
-            .border_b_1()
-            .border_color(p.border.opacity(0.68))
-            .hover(move |s| s.bg(p.hover.opacity(0.8)))
-            .children(row.iter().enumerate().map(|(index, value)| {
-                div()
-                    .flex_1()
-                    .min_w_0()
-                    .text_size(px(11.))
-                    .text_color(if index == 0 { p.text } else { p.muted })
-                    .child(*value)
-                    .into_any_element()
-            }))
-            .into_any_element()
+    let page_id = shell.page.id();
+    let row_height = shell.density.row_height();
+    let table_rows = filtered.into_iter().map(|(index, row)| {
+        components::dense_table_row(
+            format!("{page_id}-{index}"),
+            row.iter().copied(),
+            p,
+            row_height,
+            false,
+        )
+        .into_any_element()
     });
     components::panel(p)
         .flex()
@@ -237,37 +230,17 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
                             true,
                         )),
                 )
-                .child(
-                    div()
-                        .flex()
-                        .h(px(36.))
-                        .px(px(13.))
-                        .items_center()
-                        .border_b_1()
-                        .border_color(p.border)
-                        .bg(p.text_plate(p.surface, 0.25))
-                        .children(columns.iter().map(|column| {
-                            div()
-                                .flex_1()
-                                .text_size(px(10.))
-                                .text_color(p.muted)
-                                .child(*column)
-                                .into_any_element()
-                        })),
-                )
+                .child(components::dense_table_header(columns.iter().copied(), p))
                 .child(
                     div()
                         .flex_1()
                         .min_h_0()
                         .overflow_y_scrollbar()
                         .when(count == 0, |d| {
-                            d.child(
-                                div()
-                                    .p(px(24.))
-                                    .text_color(p.muted)
-                                    .text_size(px(12.))
-                                    .child("没有匹配的记录。请调整搜索关键词。"),
-                            )
+                            d.child(components::table_empty_state(
+                                "没有匹配的记录。请调整搜索关键词。",
+                                p,
+                            ))
                         })
                         .children(table_rows),
                 ),
