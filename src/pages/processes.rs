@@ -2,7 +2,7 @@
 use crate::{
     app::{ProcessView, Shell},
     components,
-    data::{Process, SortBy, filtered_sorted, tree_rows},
+    data::{Process, filtered_sorted, tree_rows},
     design::Palette,
 };
 use gpui_kit::{
