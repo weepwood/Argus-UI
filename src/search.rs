@@ -16,7 +16,13 @@ mod tests {
 
     #[test]
     fn matches_across_columns_with_and_semantics() {
-        let row = ["Windows Search", "运行中", "自动", "SearchHost.exe", "文件索引"];
+        let row = [
+            "Windows Search",
+            "运行中",
+            "自动",
+            "SearchHost.exe",
+            "文件索引",
+        ];
         assert!(matches_fields("windows 运行", &row));
         assert!(matches_fields("SEARCHHOST 文件", &row));
         assert!(matches_fields("  ", &row));
