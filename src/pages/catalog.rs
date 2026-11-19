@@ -140,15 +140,6 @@ fn records(
     }
 }
 
-/// All whitespace-separated search terms must appear somewhere in the row.
-/// Case folding is Unicode-aware and applies to every visible column.
-fn matches_query(row: &Record, query: &str) -> bool {
-    query.split_whitespace().all(|term| {
-        let term = term.to_lowercase();
-        row.iter().any(|cell| cell.to_lowercase().contains(&term))
-    })
-}
-
 fn details(p: Palette, title: &'static str, text: &'static str) -> Div {
     div()
         .w(px(360.))
@@ -184,7 +175,7 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
     let (title, subtitle, columns, items) = records(shell.page);
     let filtered: Vec<_> = items
         .iter()
-        .filter(|row| matches_query(row, &shell.query))
+        .filter(|row| crate::search::matches_fields(&shell.query, *row))
         .collect();
     let count = filtered.len();
     let table_rows = filtered.into_iter().map(|row| {
@@ -285,22 +276,3 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
         .into_any_element()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn matches_terms_across_columns() {
-        let row: Record = [
-            "Windows Search",
-            "运行中",
-            "自动",
-            "SearchHost.exe",
-            "文件索引",
-        ];
-        assert!(matches_query(&row, "windows 运行"));
-        assert!(matches_query(&row, "SEARCHHOST 文件"));
-        assert!(matches_query(&row, "  "));
-        assert!(!matches_query(&row, "windows 已停止"));
-    }
-}
