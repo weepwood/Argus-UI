@@ -122,7 +122,7 @@ impl Preferences {
     /// Applications still launch with defaults when the user profile is missing
     /// or the file cannot be read.
     pub fn load_user() -> (Self, Option<SettingsStore>, Option<String>) {
-        let Some(path) = SettingsStore::user_path() else {
+        let Some(path) = SettingsStore::user_path("Argus-UI", "ARGUS_UI_CONFIG_DIR") else {
             return (
                 Self::default(),
                 None,
