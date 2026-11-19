@@ -269,10 +269,7 @@ pub const PROCESSES: &[Process] = &[
 ];
 
 pub fn filtered_sorted(query: &str, sort: SortBy) -> Vec<Process> {
-    let terms: Vec<String> = query
-        .split_whitespace()
-        .map(str::to_lowercase)
-        .collect();
+    let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
     let mut rows: Vec<Process> = PROCESSES
         .iter()
         .copied()
