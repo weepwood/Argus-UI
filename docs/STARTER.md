@@ -9,15 +9,15 @@ connection, and history values are synthetic.
 
 | Layer | Location | Reuse strategy |
 | --- | --- | --- |
-| Presentation tokens | `src/design.rs` | Keep semantic colors and density controls; substitute your product palette |
-| Native window materials | `src/backdrop.rs`, `src/typography.rs` | Optional Windows-only integration; select opaque mode if a material isn't supported |
-| Visual primitives | `src/components.rs` | Copy stateless builders into a shared `ui` module or crate |
-| Settings file storage | `src/foundation/settings_store.rs` | Pure standard library; reusable without GPUI |
+| Presentation tokens | `crates/argus-ui-kit/src/design.rs` | Keep semantic colors and density controls; substitute your product palette |
+| Native window materials | `crates/argus-ui-kit/src/backdrop.rs`, `crates/argus-ui-kit/src/typography.rs` | Optional Windows-only integration; select opaque mode if a material isn't supported |
+| Visual primitives | `crates/argus-ui-kit/src/components.rs` | Import the library's stateless builders directly |
+| Settings file storage | `crates/argus-ui-core/src/settings_store.rs` | Pure standard library; reusable without GPUI |
 | Typed preferences | `src/preferences.rs` | Replace with your application's settings schema and version |
 | Application state | `src/app.rs` | Replace demo-specific navigation and state; retain clear mutation methods |
 | Feature pages | `src/pages/` | Compose primitive components; own queries, selection and actions here |
 | Demo data | `src/data.rs` | Replace wholesale with domain types or repositories |
-| Search | `src/search.rs` | Pure matching logic; keep it independent from the renderer |
+| Search | `crates/argus-ui-core/src/search.rs` | Pure matching logic; keep it independent from the renderer |
 
 The native Windows renderer is a locally patched version of an Apache-2.0
 GPUI backend. Its notes and provenance are in
@@ -27,12 +27,12 @@ Do not copy the backend without reviewing its license and maintenance costs.
 ## First steps for a new app
 
 1. Change the `Cargo.toml` package name and `main.rs` window title.
-2. Keep `components.rs`, `design.rs`, and `foundation/` as application-neutral modules.
+2. Keep `argus-ui-core` and `argus-ui-kit` as separate dependencies; replace only the demo-specific state and preferences.
 3. Add a typed feature model and a page module under `src/pages/`.
 4. Add a route to `app::Page` and register it in the shell's `Render` match.
 5. Replace sample fixtures and the resource strip with your product's information.
-6. Replace the Argus-specific `Preferences` keys and the per-user directory
-   the app identifier passed to `SettingsStore::user_path(app_id, config_dir_variable)`.
+6. Replace the Argus-specific `Preferences` keys, and pass your own app ID to
+   `SettingsStore::user_path(app_id, config_dir_variable)`.
 7. Preserve the explicit `DEMO` label until all data shown is backed by real
    sources. Do not keep simulated metrics labeled as live values.
 
@@ -43,6 +43,8 @@ Use `components::dense_table_header`, `dense_table_row`, and
 The table builders do not import your product types or manage state:
 
 ```rust
+use argus_ui_kit::components;
+
 let palette = shell.palette();
 let header = components::dense_table_header(["Name", "Status", "Owner"], palette);
 let row = components::dense_table_row(
@@ -64,7 +66,7 @@ renderer. The included table is intentionally small and easy to customize.
 
 ## Example: typed, persistent settings
 
-`SettingsStore` only reads and writes text. `Preferences` owns encoding and
+`argus_ui_core::settings_store::SettingsStore` only reads and writes text. `Preferences` owns encoding and
 parsing. This separation makes the storage reusable and the preferences
 application-specific.
 
@@ -95,8 +97,9 @@ When adding a preference:
 ## Validation and current limits
 
 Use the existing Windows CI for `cargo fmt --all -- --check`,
-`cargo check --locked`, `cargo clippy --all-targets --locked -- -D warnings`,
-and `cargo test --locked`. Window behavior, DPI scaling, contrast, backdrop
+`cargo check --workspace --locked`, `cargo clippy --workspace --all-targets --locked -- -D warnings`,
+and `cargo test --workspace --locked`. The portable core crate can be tested on Linux using
+`cargo test -p argus-ui-core --locked`. Window behavior, DPI scaling, contrast, backdrop
 availability, keyboard input, and GPU memory usage still require a real
 Windows 10/11 desktop session.
 
