@@ -275,4 +275,3 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
         .when(shell.show_details, |d| d.child(details(p, title, subtitle)))
         .into_any_element()
 }
-
