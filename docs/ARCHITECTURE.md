@@ -24,11 +24,11 @@ main.rs
 
 - **`app.rs`** owns global appearance, navigation, search, view mode, and shell controls.
 - **`pages/`** composes the reusable controls into process, performance, data-table, settings, and component-gallery screens.
-- **`components.rs`** contains stateless visual primitives. Components receive semantic palette values and leave domain state and actions to the caller.
-- **`design.rs`** defines appearance modes, row density, and semantic light/dark colors.
+- **`crates/argus-ui-kit/src/components.rs`** contains stateless visual primitives. Components receive semantic palette values and leave domain state and actions to the caller.
+- **`crates/argus-ui-kit/src/design.rs`** defines appearance modes, row density, and semantic light/dark colors.
 - **`preferences.rs`** owns typed app settings, format version, safe fallbacks, and Windows material resolution.
-- **`foundation/settings_store.rs`** is a dependency-free file store, separate from GPUI and domain data.
-- **`search.rs`** provides pure keyword matching shared by demo feature tables.
+- **`crates/argus-ui-core/src/settings_store.rs`** is a dependency-free file store, separate from GPUI and domain data.
+- **`crates/argus-ui-core/src/search.rs`** provides pure keyword matching shared by demo feature tables.
 - **`data.rs`** provides deterministic local fixtures and pure filtering/sorting functions.
 - **`main.rs`** loads user preferences, configures the native window and initial backdrop, and opens the application shell.
 
@@ -48,6 +48,8 @@ main.rs
 | Interactive data tables | Page state plus `dense_table_header`, `dense_table_row`, and empty-state builders |
 | Local configuration | Versioned app-specific preferences over a reusable filesystem store |
 | Continuous or high-frequency charts | GPUI Kit charts first; a dedicated render layer only after measuring a need |
+
+The Cargo workspace contains three packages: a Windows-only executable `argus-ui`, a portable `argus-ui-core` library, and a Windows-first `argus-ui-kit` library. The libraries expose public Rust modules and can be imported from another crate instead of copying page code.
 
 Read [Starter and extension guide](STARTER.md) for module boundaries and an example of adding a data table or preference.
 
