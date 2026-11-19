@@ -289,7 +289,6 @@ pub fn filtered_sorted(query: &str, sort: SortBy) -> Vec<Process> {
     rows
 }
 
-
 /// Build a stable parent-first view from already sorted, filtered rows.
 ///
 /// Children whose parents are hidden by search become top-level rows. A second
@@ -307,7 +306,11 @@ pub fn tree_rows(rows: &[Process]) -> Vec<(Process, usize)> {
         }
         seen.push(process.id);
         output.push((process, depth));
-        for child in rows.iter().copied().filter(|child| child.parent_pid == Some(process.id)) {
+        for child in rows
+            .iter()
+            .copied()
+            .filter(|child| child.parent_pid == Some(process.id))
+        {
             append(child, depth + 1, rows, seen, output);
         }
     }
@@ -316,7 +319,9 @@ pub fn tree_rows(rows: &[Process]) -> Vec<(Process, usize)> {
     let mut output = Vec::with_capacity(rows.len());
     for process in rows.iter().copied() {
         if process.parent_pid.is_none()
-            || !rows.iter().any(|candidate| Some(candidate.id) == process.parent_pid)
+            || !rows
+                .iter()
+                .any(|candidate| Some(candidate.id) == process.parent_pid)
         {
             append(process, 0, rows, &mut seen, &mut output);
         }
