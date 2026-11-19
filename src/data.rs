@@ -269,16 +269,20 @@ pub const PROCESSES: &[Process] = &[
 ];
 
 pub fn filtered_sorted(query: &str, sort: SortBy) -> Vec<Process> {
-    let query = query.trim().to_lowercase();
+    let terms: Vec<String> = query
+        .split_whitespace()
+        .map(str::to_lowercase)
+        .collect();
     let mut rows: Vec<Process> = PROCESSES
         .iter()
         .copied()
         .filter(|process| {
-            query.is_empty()
-                || process.name.to_lowercase().contains(&query)
-                || process.executable.to_lowercase().contains(&query)
-                || process.category.to_lowercase().contains(&query)
-                || process.id.to_string().contains(&query)
+            let searchable = format!(
+                "{} {} {} {}",
+                process.name, process.executable, process.category, process.id
+            )
+            .to_lowercase();
+            terms.iter().all(|term| searchable.contains(term))
         })
         .collect();
     rows.sort_by(|a, b| match sort {
@@ -361,6 +365,9 @@ mod tests {
     fn search_and_sort_work() {
         let rows = filtered_sorted("code", SortBy::Cpu);
         assert_eq!(rows.len(), 1);
+        let multi = filtered_sorted("CODE 10736", SortBy::Name);
+        assert_eq!(multi.len(), 1);
+        assert_eq!(multi[0].id, 10736);
         let all = filtered_sorted("edge", SortBy::Cpu);
         assert_eq!(all.len(), 1);
         let all = filtered_sorted("", SortBy::Cpu);
