@@ -269,17 +269,15 @@ pub const PROCESSES: &[Process] = &[
 ];
 
 pub fn filtered_sorted(query: &str, sort: SortBy) -> Vec<Process> {
-    let terms: Vec<String> = query.split_whitespace().map(str::to_lowercase).collect();
     let mut rows: Vec<Process> = PROCESSES
         .iter()
         .copied()
         .filter(|process| {
-            let searchable = format!(
-                "{} {} {} {}",
-                process.name, process.executable, process.category, process.id
+            let pid = process.id.to_string();
+            crate::search::matches_fields(
+                query,
+                &[process.name, process.executable, process.category, &pid],
             )
-            .to_lowercase();
-            terms.iter().all(|term| searchable.contains(term))
         })
         .collect();
     rows.sort_by(|a, b| match sort {
