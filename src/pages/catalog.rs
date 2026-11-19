@@ -139,6 +139,15 @@ fn records(
     }
 }
 
+/// All whitespace-separated search terms must appear somewhere in the row.
+/// Case folding is Unicode-aware and applies to every visible column.
+fn matches_query(row: &Record, query: &str) -> bool {
+    query.split_whitespace().all(|term| {
+        let term = term.to_lowercase();
+        row.iter().any(|cell| cell.to_lowercase().contains(&term))
+    })
+}
+
 fn details(p: Palette, title: &'static str, text: &'static str) -> Div {
     div()
         .w(px(360.))
@@ -172,7 +181,12 @@ fn details(p: Palette, title: &'static str, text: &'static str) -> Div {
 pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
     let p = shell.palette();
     let (title, subtitle, columns, items) = records(shell.page);
-    let table_rows = items.iter().map(|row| {
+    let filtered: Vec<_> = items
+        .iter()
+        .filter(|row| matches_query(row, &shell.query))
+        .collect();
+    let count = filtered.len();
+    let table_rows = filtered.into_iter().map(|row| {
         div()
             .flex()
             .h(px(43.))
@@ -225,7 +239,7 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
                                 )
                                 .child(components::small_label(subtitle, p)),
                         )
-                        .child(components::tag(format!("{} 项", items.len()), p, true)),
+                        .child(components::tag(format!("{count} / {} 项 · 模拟数据", items.len()), p, true)),
                 )
                 .child(
                     div()
@@ -250,9 +264,32 @@ pub fn render(shell: &mut Shell, _cx: &mut Context<Shell>) -> AnyElement {
                         .flex_1()
                         .min_h_0()
                         .overflow_y_scrollbar()
+                        .when(count == 0, |d| {
+                            d.child(
+                                div()
+                                    .p(px(24.))
+                                    .text_color(p.muted)
+                                    .text_size(px(12.))
+                                    .child("没有匹配的记录。请调整搜索关键词。"),
+                            )
+                        })
                         .children(table_rows),
                 ),
         )
-        .child(details(p, title, subtitle))
+        .when(shell.show_details, |d| d.child(details(p, title, subtitle)))
         .into_any_element()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn matches_terms_across_columns() {
+        let row: Record = ["Windows Search", "运行中", "自动", "SearchHost.exe", "文件索引"];
+        assert!(matches_query(&row, "windows 运行"));
+        assert!(matches_query(&row, "SEARCHHOST 文件"));
+        assert!(matches_query(&row, "  "));
+        assert!(!matches_query(&row, "windows 已停止"));
+    }
 }
