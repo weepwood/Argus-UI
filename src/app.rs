@@ -4,7 +4,7 @@ use crate::{
     components,
     data::{CPU_SERIES, DISK_SERIES, GPU_SERIES, MEMORY_SERIES, NET_SERIES, SortBy},
     design::{Appearance, Density, MaterialClarity, Palette},
-    foundation::settings_store::SettingsStore,
+    settings_store::SettingsStore,
     pages,
     preferences::Preferences,
 };
