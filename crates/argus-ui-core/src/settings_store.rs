@@ -25,8 +25,9 @@ impl SettingsStore {
         &self.path
     }
 
-    /// Resolve the Windows per-user settings path. The override supports
-    /// portable builds and integration tests without modifying user settings.
+    /// Resolve a per-user settings path on Windows, macOS, or Unix.
+    /// The caller-named override supports portable builds and test isolation.
+    /// Missing home/configuration environment variables return `None`.
     pub fn user_path(app_id: &str, config_dir_variable: &str) -> Option<PathBuf> {
         if app_id.is_empty()
             || app_id == "."
@@ -40,9 +41,35 @@ impl SettingsStore {
         if let Some(dir) = env::var_os(config_dir_variable).filter(|dir| !dir.is_empty()) {
             return Some(PathBuf::from(dir).join("settings.conf"));
         }
-        env::var_os("LOCALAPPDATA")
-            .filter(|dir| !dir.is_empty())
-            .map(|dir| PathBuf::from(dir).join(app_id).join("settings.conf"))
+        #[cfg(target_os = "windows")]
+        {
+            env::var_os("LOCALAPPDATA")
+                .filter(|dir| !dir.is_empty())
+                .map(|dir| PathBuf::from(dir).join(app_id).join("settings.conf"))
+        }
+        #[cfg(target_os = "macos")]
+        {
+            env::var_os("HOME")
+                .filter(|dir| !dir.is_empty())
+                .map(|dir| {
+                    PathBuf::from(dir)
+                        .join("Library")
+                        .join("Application Support")
+                        .join(app_id)
+                        .join("settings.conf")
+                })
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        {
+            env::var_os("XDG_CONFIG_HOME")
+                .filter(|dir| !dir.is_empty() && Path::new(dir).is_absolute())
+                .or_else(|| {
+                    env::var_os("HOME")
+                        .filter(|dir| !dir.is_empty())
+                        .map(|dir| PathBuf::from(dir).join(".config").into_os_string())
+                })
+                .map(|dir| PathBuf::from(dir).join(app_id).join("settings.conf"))
+        }
     }
 
     /// Missing settings are a normal first-run state, not an error.
