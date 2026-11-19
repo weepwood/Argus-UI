@@ -6,15 +6,14 @@ compile_error!(
 );
 
 mod app;
-mod backdrop;
-mod components;
 mod data;
-mod design;
-mod foundation;
 mod pages;
 mod preferences;
-mod search;
-mod typography;
+
+// Compatibility aliases keep the demo's feature paths stable while exporting
+// the actual reusable components and utilities from dedicated library crates.
+pub use argus_ui_core::{search, settings_store};
+pub use argus_ui_kit::{backdrop, components, design, typography};
 
 use gpui_kit::assets::Assets;
 use gpui_kit::*;
