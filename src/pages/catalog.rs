@@ -7,6 +7,7 @@ use crate::{
 use gpui_kit::{
     assets::IconName,
     component::{Icon, scroll::ScrollableElement as _},
+    prelude::FluentBuilder as _,
     *,
 };
 
