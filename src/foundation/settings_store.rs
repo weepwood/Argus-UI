@@ -64,13 +64,18 @@ impl SettingsStore {
             let mut name = OsString::from(basename);
             name.push(format!(".{}.{}.{}.tmp", std::process::id(), nonce, attempt));
             let temporary = parent.join(name);
-            let file = OpenOptions::new().write(true).create_new(true).open(&temporary);
+            let file = OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&temporary);
             let mut file = match file {
                 Ok(file) => file,
                 Err(error) if error.kind() == ErrorKind::AlreadyExists => continue,
                 Err(error) => return Err(error),
             };
-            let written = file.write_all(contents.as_bytes()).and_then(|_| file.sync_all());
+            let written = file
+                .write_all(contents.as_bytes())
+                .and_then(|_| file.sync_all());
             drop(file);
             let result = written.and_then(|_| fs::rename(&temporary, &self.path));
             if result.is_err() {
@@ -111,9 +116,15 @@ mod tests {
         ));
         let store = SettingsStore::new(dir.join("nested").join("settings.conf"));
         store.write("version=1\ntheme=light\n").unwrap();
-        assert_eq!(store.read().unwrap().as_deref(), Some("version=1\ntheme=light\n"));
+        assert_eq!(
+            store.read().unwrap().as_deref(),
+            Some("version=1\ntheme=light\n")
+        );
         store.write("version=1\ntheme=dark\n").unwrap();
-        assert_eq!(store.read().unwrap().as_deref(), Some("version=1\ntheme=dark\n"));
+        assert_eq!(
+            store.read().unwrap().as_deref(),
+            Some("version=1\ntheme=dark\n")
+        );
         fs::remove_dir_all(dir).unwrap();
     }
 }
