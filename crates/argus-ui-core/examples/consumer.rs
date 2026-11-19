@@ -10,7 +10,10 @@ fn main() {
 
     if let Some(path) = SettingsStore::user_path("MyDesktopApp", "MY_DESKTOPAPP_CONFIG_DIR") {
         let store = SettingsStore::new(path);
-        println!("Per-user settings would be stored at: {}", store.path().display());
+        println!(
+            "Per-user settings would be stored at: {}",
+            store.path().display()
+        );
         // Example intentionally does not write to the user's machine.
     } else {
         println!("No user settings directory available; use an explicit custom path.");
