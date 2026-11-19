@@ -1,8 +1,8 @@
 //! Dense process table and device/detail rail, composed from reusable primitives.
 use crate::{
-    app::Shell,
+    app::{ProcessView, Shell},
     components,
-    data::{PROCESSES, Process, SortBy, filtered_sorted},
+    data::{Process, SortBy, filtered_sorted, tree_rows},
     design::Palette,
 };
 use gpui_kit::{
@@ -47,7 +47,7 @@ fn table_header(p: Palette, totals: (String, String, String, String, String, Str
         .border_color(p.border)
         .bg(p.text_plate(p.surface, 0.25))
         .text_color(p.muted)
-        .child(div().flex_1().min_w_0().text_size(px(10.)).child("名称  ↑"))
+        .child(div().flex_1().min_w_0().text_size(px(10.)).child("名称"))
         .child(numeric_cell(COLUMNS[0].0, "PID", p.muted, p))
         .child(numeric_cell(COLUMNS[1].0, totals.0, p.muted, p))
         .child(numeric_cell(COLUMNS[2].0, totals.1, p.muted, p))
@@ -57,7 +57,7 @@ fn table_header(p: Palette, totals: (String, String, String, String, String, Str
         .child(numeric_cell(COLUMNS[6].0, totals.5, p.muted, p))
 }
 
-fn process_row(shell: &Shell, process: Process, cx: &mut Context<Shell>) -> AnyElement {
+fn process_row(shell: &Shell, process: Process, depth: usize, cx: &mut Context<Shell>) -> AnyElement {
     let p = shell.palette();
     let selected = shell.selected_pid == Some(process.id);
     let icon = match process.category {
@@ -89,6 +89,16 @@ fn process_row(shell: &Shell, process: Process, cx: &mut Context<Shell>) -> AnyE
                 .flex()
                 .items_center()
                 .gap(px(8.))
+                .pl(px(depth as f32 * 16.))
+                .when(depth > 0, |d| {
+                    d.child(
+                        div()
+                            .w(px(12.))
+                            .flex_shrink_0()
+                            .text_color(p.faint)
+                            .child("↳"),
+                    )
+                })
                 .child(
                     div()
                         .flex()
@@ -198,7 +208,7 @@ fn group_header(category: &'static str, rows: &[Process], p: Palette) -> Div {
                 .items_center()
                 .gap(px(8.))
                 .child(
-                    Icon::new(IconName::ChevronDown)
+                    Icon::new(IconName::ListTree)
                         .size(px(13.))
                         .text_color(p.muted),
                 )
@@ -477,31 +487,38 @@ pub fn render(shell: &mut Shell, cx: &mut Context<Shell>) -> AnyElement {
         ),
         format!("{:.0}%", rows.iter().map(|row| row.gpu).sum::<f32>()),
     );
-    let mut table_rows = Vec::new();
-    for category in ["应用", "后台进程", "Windows 进程"] {
-        let mut group: Vec<_> = rows
+    let table_rows: Vec<AnyElement> = match shell.view {
+        ProcessView::Apps => {
+            let mut result = Vec::new();
+            for category in ["应用", "后台进程", "Windows 进程"] {
+                let group: Vec<_> = rows
+                    .iter()
+                    .copied()
+                    .filter(|row| row.category == category)
+                    .collect();
+                if !group.is_empty() {
+                    result.push(group_header(category, &group, p).into_any_element());
+                    result.extend(
+                        group
+                            .into_iter()
+                            .map(|process| process_row(shell, process, 0, cx)),
+                    );
+                }
+            }
+            result
+        }
+        ProcessView::Tree => tree_rows(&rows)
+            .into_iter()
+            .map(|(process, depth)| process_row(shell, process, depth, cx))
+            .collect(),
+        ProcessView::List => rows
             .iter()
             .copied()
-            .filter(|row| row.category == category)
-            .collect();
-        if !group.is_empty() {
-            group.sort_by(|a, b| match shell.sort {
-                SortBy::Cpu => b.cpu.total_cmp(&a.cpu),
-                SortBy::Memory => b.memory_mb.cmp(&a.memory_mb),
-                SortBy::Name => a.name.cmp(b.name),
-            });
-            table_rows.push(group_header(category, &group, p).into_any_element());
-            table_rows.extend(
-                group
-                    .into_iter()
-                    .map(|process| process_row(shell, process, cx)),
-            );
-        }
-    }
-    let visible_rows = PROCESSES
-        .iter()
-        .filter(|process| shell.query.is_empty() || rows.iter().any(|row| row.id == process.id))
-        .count();
+            .map(|process| process_row(shell, process, 0, cx))
+            .collect(),
+    };
+    let has_results = !table_rows.is_empty();
+    let visible_rows = rows.len();
 
     let list = div()
         .flex()
@@ -556,6 +573,15 @@ pub fn render(shell: &mut Shell, cx: &mut Context<Shell>) -> AnyElement {
                 .flex_1()
                 .min_h_0()
                 .overflow_y_scrollbar()
+                .when(!has_results, |d| {
+                    d.child(
+                        div()
+                            .p(px(24.))
+                            .text_size(px(12.))
+                            .text_color(p.muted)
+                            .child("没有匹配的模拟进程。请尝试其他关键词。"),
+                    )
+                })
                 .children(table_rows),
         );
 
