@@ -150,7 +150,7 @@ where
 /// An independently styled table row. The caller decides its stable ID and
 /// whether a row is selected, and can attach event handlers to the result.
 pub fn dense_table_row<I, S>(
-    id: impl Into<SharedString>,
+    id: impl Into<ElementId>,
     cells: I,
     p: Palette,
     height: f32,
