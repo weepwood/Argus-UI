@@ -31,7 +31,9 @@ impl SettingsStore {
         if app_id.is_empty()
             || app_id == "."
             || app_id == ".."
-            || app_id.chars().any(|ch| matches!(ch, '/' | '\\' | ':' | '*' | '?'))
+            || app_id
+                .chars()
+                .any(|ch| matches!(ch, '/' | '\\' | ':' | '*' | '?'))
         {
             return None;
         }
@@ -141,5 +143,4 @@ mod tests {
         assert!(SettingsStore::user_path("some\\\\other", "ARGUS_UI_CONFIG_DIR").is_none());
         assert!(SettingsStore::user_path("my:app", "ARGUS_UI_CONFIG_DIR").is_none());
     }
-
 }
