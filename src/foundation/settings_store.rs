@@ -27,13 +27,20 @@ impl SettingsStore {
 
     /// Resolve the Windows per-user settings path. The override supports
     /// portable builds and integration tests without modifying user settings.
-    pub fn user_path() -> Option<PathBuf> {
-        if let Some(dir) = env::var_os("ARGUS_UI_CONFIG_DIR").filter(|dir| !dir.is_empty()) {
+    pub fn user_path(app_id: &str, config_dir_variable: &str) -> Option<PathBuf> {
+        if app_id.is_empty()
+            || app_id == "."
+            || app_id == ".."
+            || app_id.chars().any(|ch| matches!(ch, '/' | '\\' | ':' | '*' | '?'))
+        {
+            return None;
+        }
+        if let Some(dir) = env::var_os(config_dir_variable).filter(|dir| !dir.is_empty()) {
             return Some(PathBuf::from(dir).join("settings.conf"));
         }
         env::var_os("LOCALAPPDATA")
             .filter(|dir| !dir.is_empty())
-            .map(|dir| PathBuf::from(dir).join("Argus-UI").join("settings.conf"))
+            .map(|dir| PathBuf::from(dir).join(app_id).join("settings.conf"))
     }
 
     /// Missing settings are a normal first-run state, not an error.
@@ -127,4 +134,12 @@ mod tests {
         );
         fs::remove_dir_all(dir).unwrap();
     }
+    #[test]
+    fn application_identifier_cannot_escape_its_settings_directory() {
+        assert!(SettingsStore::user_path("..", "ARGUS_UI_CONFIG_DIR").is_none());
+        assert!(SettingsStore::user_path("../other", "ARGUS_UI_CONFIG_DIR").is_none());
+        assert!(SettingsStore::user_path("some\\\\other", "ARGUS_UI_CONFIG_DIR").is_none());
+        assert!(SettingsStore::user_path("my:app", "ARGUS_UI_CONFIG_DIR").is_none());
+    }
+
 }
