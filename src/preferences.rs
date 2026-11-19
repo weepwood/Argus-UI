@@ -5,7 +5,7 @@
 use crate::{
     backdrop::Backdrop,
     design::{Appearance, Density, MaterialClarity},
-    foundation::settings_store::SettingsStore,
+    settings_store::SettingsStore,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
