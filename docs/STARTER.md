@@ -32,7 +32,7 @@ Do not copy the backend without reviewing its license and maintenance costs.
 4. Add a route to `app::Page` and register it in the shell's `Render` match.
 5. Replace sample fixtures and the resource strip with your product's information.
 6. Replace the Argus-specific `Preferences` keys and the per-user directory
-   `Argus-UI` in `SettingsStore::user_path()`.
+   the app identifier passed to `SettingsStore::user_path(app_id, config_dir_variable)`.
 7. Preserve the explicit `DEMO` label until all data shown is backed by real
    sources. Do not keep simulated metrics labeled as live values.
 
