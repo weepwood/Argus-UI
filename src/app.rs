@@ -489,7 +489,7 @@ impl Shell {
                     .gap(px(14.))
                     .child(components::tag("UI 0.1 · Demo", p, false))
                     .child("全部指标为静态演示数据")
-                    .child("不读取系统进程或资源")
+                    .child("不读取系统进程或资源"),
             )
             .child(
                 div()
