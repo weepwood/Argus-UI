@@ -209,9 +209,10 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
         .child(setting_row(
             p,
             "配置持久化",
-            shell.preferences_error.clone().unwrap_or_else(|| {
-                "界面偏好写入当前用户的本地配置目录，重启应用后自动恢复。".to_string()
-            }),
+            shell
+                .preferences_error
+                .clone()
+                .unwrap_or_else(|| shell.preferences_file_location()),
             components::tag("自动保存", p, true),
         ))
         .child(setting_row(
