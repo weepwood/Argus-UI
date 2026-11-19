@@ -1,5 +1,4 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-#![recursion_limit = "512"]
 
 #[cfg(not(target_os = "windows"))]
 compile_error!(
@@ -12,6 +11,7 @@ mod components;
 mod data;
 mod design;
 mod pages;
+mod search;
 mod typography;
 
 use gpui_kit::assets::Assets;
