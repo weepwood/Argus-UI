@@ -57,7 +57,12 @@ fn table_header(p: Palette, totals: (String, String, String, String, String, Str
         .child(numeric_cell(COLUMNS[6].0, totals.5, p.muted, p))
 }
 
-fn process_row(shell: &Shell, process: Process, depth: usize, cx: &mut Context<Shell>) -> AnyElement {
+fn process_row(
+    shell: &Shell,
+    process: Process,
+    depth: usize,
+    cx: &mut Context<Shell>,
+) -> AnyElement {
     let p = shell.palette();
     let selected = shell.selected_pid == Some(process.id);
     let icon = match process.category {
