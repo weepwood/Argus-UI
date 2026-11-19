@@ -1,4 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![recursion_limit = "512"]
 
 #[cfg(not(target_os = "windows"))]
 compile_error!(
