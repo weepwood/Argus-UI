@@ -152,12 +152,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
         .w(px(760.))
         .max_w_full()
         .flex_col()
-        .child(setting_row(
-            p,
-            "文字渲染",
-            shell.clarity.hint(),
-            clarity,
-        ))
+        .child(setting_row(p, "文字渲染", shell.clarity.hint(), clarity))
         .child(setting_row(
             p,
             "窗口背景材质",
