@@ -32,7 +32,6 @@ fn numeric_cell(width: f32, value: impl Into<SharedString>, color: Hsla, _p: Pal
         .justify_end()
         .text_size(px(11.))
         .text_color(color)
-        .font_family("Segoe UI Variable")
         .child(value.into())
 }
 

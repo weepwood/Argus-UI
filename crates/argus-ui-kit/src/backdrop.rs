@@ -1,9 +1,15 @@
 //! Native window materials for the shell.
 //!
-//! DWM paints the backdrop behind the window, so a translucent mode only reads
-//! as glass when the UI keeps its own root layer transparent. The matching
-//! surface colours live in `design.rs`.
+//! The operating system paints the backdrop behind the window, so a translucent
+//! mode only reads as glass when the UI keeps its own root layer transparent.
+//! The matching surface colours live in `design.rs`.
+//!
+//! Windows maps the modes to DWM system backdrops (Mica, Mica Alt, Acrylic);
+//! macOS maps them to `NSVisualEffectView` vibrancy and window transparency.
+//! Availability is decided per platform so a saved preference from another OS
+//! never reaches a backend that cannot paint it.
 
+#[cfg(target_os = "windows")]
 use std::sync::OnceLock;
 
 // Explicit imports only: `gpui_kit::*` also pulls in the library's `#[test]`
@@ -61,10 +67,22 @@ impl Backdrop {
 
     pub fn hint(self) -> &'static str {
         match self {
-            Self::Opaque => "纯色实底，兼容所有 Windows 版本，可读性最好。",
-            Self::Mica => "桌面壁纸色调的柔和半透明材质，内容层保持通透。",
-            Self::MicaAlt => "更强的桌面着色，适合标签式与分栏布局。",
-            Self::Acrylic => "窗口后方内容实时模糊的亚克力玻璃，层次最明显。",
+            Self::Opaque => "纯色实底，兼容所有系统版本，可读性最好。",
+            Self::Mica => {
+                if cfg!(target_os = "windows") {
+                    "桌面壁纸色调的柔和半透明材质，内容层保持通透。"
+                } else {
+                    "仅 Windows 11 22H2 及以上提供该材质，本平台将回退到不透明。"
+                }
+            }
+            Self::MicaAlt => {
+                if cfg!(target_os = "windows") {
+                    "更强的桌面着色，适合标签式与分栏布局。"
+                } else {
+                    "仅 Windows 11 22H2 及以上提供该材质，本平台将回退到不透明。"
+                }
+            }
+            Self::Acrylic => "窗口后方内容实时模糊的毛玻璃，层次最明显。",
             Self::Clear => "不启用系统背板，仅保留半透明内容层。",
         }
     }
@@ -83,7 +101,8 @@ impl Backdrop {
         !matches!(self, Self::Opaque)
     }
 
-    /// GPUI itself guards the DWM calls by OS build; keep the UI in sync with it.
+    /// GPUI guards the backend calls by OS version; keep the UI in sync with it.
+    #[cfg(target_os = "windows")]
     pub fn is_available(self) -> bool {
         match self {
             Self::Opaque => true,
@@ -92,15 +111,39 @@ impl Backdrop {
         }
     }
 
-    /// Pick Mica on a capable system, otherwise fall back to a solid surface.
-    /// `ARGUS_UI_OPAQUE=1` forces the fallback (remote sessions, screenshots, etc.).
+    /// macOS supports vibrancy and a transparent window on every release; the
+    /// Mica variants are Windows-only and would silently paint nothing.
+    #[cfg(target_os = "macos")]
+    pub fn is_available(self) -> bool {
+        matches!(self, Self::Opaque | Self::Acrylic | Self::Clear)
+    }
+
+    /// Unsupported platforms keep the portable solid surface.
+    #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+    pub fn is_available(self) -> bool {
+        matches!(self, Self::Opaque)
+    }
+
+    /// Pick the system material on a capable machine, otherwise fall back to a
+    /// solid surface. `ARGUS_UI_OPAQUE=1` forces the fallback (remote sessions,
+    /// screenshots, VM guests, etc.).
     pub fn auto() -> Self {
-        let forced = std::env::var_os("ARGUS_UI_OPAQUE").is_some();
-        if !forced && Self::Mica.is_available() {
-            Self::Mica
-        } else {
-            Self::Opaque
+        if std::env::var_os("ARGUS_UI_OPAQUE").is_some() {
+            return Self::Opaque;
         }
+        #[cfg(target_os = "windows")]
+        {
+            if Self::Mica.is_available() {
+                return Self::Mica;
+            }
+        }
+        #[cfg(target_os = "macos")]
+        {
+            if Self::Acrylic.is_available() {
+                return Self::Acrylic;
+            }
+        }
+        Self::Opaque
     }
 }
 
@@ -132,6 +175,18 @@ pub fn install_surface(cx: &mut App) {
 }
 
 /// Short line for the settings page: which materials this machine can use.
+#[cfg(target_os = "macos")]
+pub fn support_note() -> String {
+    "macOS · 支持系统毛玻璃（vibrancy）与透明窗口，Mica 仅 Windows 11 22H2+ 提供".to_string()
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+pub fn support_note() -> String {
+    "当前平台仅支持不透明材质".to_string()
+}
+
+/// Short line for the settings page: which materials this machine can use.
+#[cfg(target_os = "windows")]
 pub fn support_note() -> String {
     let build = windows_build();
     if build == 0 {
@@ -145,6 +200,7 @@ pub fn support_note() -> String {
     }
 }
 
+#[cfg(target_os = "windows")]
 #[repr(C)]
 struct OsVersionInfoW {
     size: u32,
@@ -155,6 +211,7 @@ struct OsVersionInfoW {
     csd_version: [u16; 128],
 }
 
+#[cfg(target_os = "windows")]
 #[link(name = "ntdll")]
 unsafe extern "system" {
     fn RtlGetVersion(info: *mut OsVersionInfoW) -> i32;
@@ -162,6 +219,17 @@ unsafe extern "system" {
 
 /// `RtlGetVersion` reports the real build even when the manifest does not
 /// declare modern Windows versions. Zero means detection failed.
+///
+/// Off Windows there is no build number to report, so the helper returns zero
+/// and every version-gated material stays disabled.
+#[cfg(not(target_os = "windows"))]
+pub fn windows_build() -> u32 {
+    0
+}
+
+/// `RtlGetVersion` reports the real build even when the manifest does not
+/// declare modern Windows versions. Zero means detection failed.
+#[cfg(target_os = "windows")]
 pub fn windows_build() -> u32 {
     static BUILD: OnceLock<u32> = OnceLock::new();
     *BUILD.get_or_init(|| {
@@ -175,10 +243,55 @@ pub fn windows_build() -> u32 {
     })
 }
 
+/// Platform label for the settings page row that describes OS support.
+pub fn platform_name() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "Windows"
+    } else if cfg!(target_os = "macos") {
+        "macOS"
+    } else {
+        "Unsupported"
+    }
+}
+
+/// Tag next to the support note: names the OS subsystem that paints the glass.
+pub fn material_tag() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "DWM 自动检测"
+    } else if cfg!(target_os = "macos") {
+        "NSVisualEffectView"
+    } else {
+        "无系统材质"
+    }
+}
+
+/// Short description of how text is antialiased on this platform.
+pub fn antialiasing_note() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "GPUI 仅在窗口不透明时启用 ClearType 子像素渲染；半透明材质下走 DirectWrite 灰度抗锯齿。"
+    } else if cfg!(target_os = "macos") {
+        "Core Text 始终使用灰度抗锯齿；毛玻璃窗口下文字保持不透明以维持笔画对比度。"
+    } else {
+        "当前平台使用 GPUI 默认的文字抗锯齿策略。"
+    }
+}
+
+/// Tag next to the antialiasing note.
+pub fn antialiasing_tag() -> &'static str {
+    if cfg!(target_os = "windows") {
+        "GPUI / DirectWrite"
+    } else if cfg!(target_os = "macos") {
+        "GPUI / Core Text"
+    } else {
+        "GPUI"
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn detects_the_real_windows_build() {
         let build = windows_build();
@@ -188,6 +301,7 @@ mod tests {
         );
     }
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn capabilities_follow_the_reported_build() {
         let build = windows_build();
@@ -196,5 +310,36 @@ mod tests {
         assert_eq!(Backdrop::MicaAlt.is_available(), build >= 22_621);
         assert_eq!(Backdrop::Acrylic.is_available(), build >= 17_763);
         assert_eq!(Backdrop::Clear.is_available(), build >= 17_763);
+    }
+
+    #[test]
+    fn opaque_material_is_always_available() {
+        assert!(Backdrop::Opaque.is_available());
+    }
+
+    #[test]
+    fn capability_matrix_matches_the_platform() {
+        assert!(Backdrop::Opaque.is_available());
+        #[cfg(target_os = "macos")]
+        {
+            assert!(!Backdrop::Mica.is_available());
+            assert!(!Backdrop::MicaAlt.is_available());
+            assert!(Backdrop::Acrylic.is_available());
+            assert!(Backdrop::Clear.is_available());
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos")))]
+        {
+            let available = Backdrop::ALL.iter().filter(|mode| mode.is_available());
+            assert_eq!(available.count(), 1);
+        }
+    }
+
+    #[test]
+    fn platform_notes_are_never_empty() {
+        assert!(!support_note().is_empty());
+        assert!(!platform_name().is_empty());
+        assert!(!material_tag().is_empty());
+        assert!(!antialiasing_note().is_empty());
+        assert!(!antialiasing_tag().is_empty());
     }
 }

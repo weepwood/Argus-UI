@@ -1,9 +1,6 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
-#[cfg(not(target_os = "windows"))]
-compile_error!(
-    "Argus UI's first release targets Windows only. Build with the MSVC Windows toolchain."
-);
+// Hide the console window in release Windows builds. The attribute is ignored
+// by other targets, but it is still scoped so macOS builds stay untouched.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod app;
 mod data;

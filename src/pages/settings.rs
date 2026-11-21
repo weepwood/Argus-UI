@@ -168,13 +168,13 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
             p,
             "系统材质支持",
             backdrop::support_note(),
-            components::tag("DWM 自动检测", p, false),
+            components::tag(backdrop::material_tag(), p, false),
         ))
         .child(setting_row(
             p,
             "抗锯齿机制",
-            "GPUI 仅在窗口不透明时启用 ClearType 子像素渲染；半透明材质下走 DirectWrite 灰度抗锯齿。",
-            components::tag("GPUI / DirectWrite", p, false),
+            backdrop::antialiasing_note(),
+            components::tag(backdrop::antialiasing_tag(), p, false),
         ))
         .child(setting_row(
             p,

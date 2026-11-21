@@ -600,7 +600,6 @@ impl Render for Shell {
             .flex()
             .flex_col()
             .size_full()
-            .font_family("Segoe UI Variable")
             .text_size(px(12.))
             .text_color(p.text)
             .bg(p.background)
