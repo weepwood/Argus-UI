@@ -12,11 +12,10 @@ Every tagged release publishes native packages for both supported desktop platfo
 
 | Platform | Package | Contents |
 |---|---|---|
-| Windows 10/11 x64 | `argus-ui-<version>-windows-x64.zip` | Portable `ArgusUI.exe`, README, LICENSE, CHANGELOG |
-| macOS 12+ (Apple Silicon + Intel) | `argus-ui-<version>-macos-universal.zip` | Universal `Argus UI.app` bundle |
-| macOS 12+ | `argus-ui-<version>-macos-universal.dmg` | Same bundle as a disk image, plus SHA-256 sums |
+| Windows 10/11 x86_64 (AMD64) | `argus-ui-<version>-windows-x64.zip` | Portable `ArgusUI.exe`, README, LICENSE, CHANGELOG |
+| macOS 12+ (Apple Silicon + Intel) | `argus-ui-<version>-macos-universal.dmg` | Universal `Argus UI.app` bundle with an Applications shortcut |
 
-Both packages are unsigned by a commercial certificate: Windows may show a SmartScreen prompt, and macOS requires **System Settings → Privacy & Security → Open Anyway** the first time the app launches. macOS builds are ad-hoc signed, which is the minimum arm64 requires.
+The release also contains a `SHA256SUMS.txt` file to verify both downloads. Neither app is signed with a trusted publisher certificate: Windows may show a SmartScreen prompt, and macOS requires **System Settings → Privacy & Security → Open Anyway** the first time the app launches. macOS builds are ad-hoc signed, which is the minimum arm64 requires.
 
 ## Quick start
 
@@ -158,9 +157,9 @@ Preferences are stored as versioned plain text in the per-user configuration dir
 
 1. Bump `version` in `Cargo.toml` and both crate manifests, update `CHANGELOG.md`, commit.
 2. Tag the merge commit: `git tag v0.2.0 && git push origin v0.2.0`.
-3. `.github/workflows/release.yml` builds Windows x64 and a macOS universal bundle, verifies the tag against the manifest version, and publishes the GitHub release with the packages attached.
+3. `.github/workflows/release.yml` builds only a Windows x86_64 portable ZIP and a macOS universal DMG, validates the source tag and expected asset names, generates `SHA256SUMS.txt`, and publishes the GitHub release.
 
-A manual `Release` run without a tag only builds the packages and keeps them as workflow artifacts.
+A manual `Release` run without a tag only builds the Windows ZIP and macOS DMG as workflow artifacts; CI does not upload loose executables. To package an existing tag, provide that tag in the manual input: the workflow checks out the tag before building. You can reproduce the same packages locally using `powershell -File scripts/package-windows.ps1 -Version <version>` on Windows or `bash scripts/package-macos.sh <version>` on macOS.
 
 ## Relationship to Argus
 

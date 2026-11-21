@@ -1,195 +1,174 @@
 name: Release
 
-# Tags such as v0.2.0 publish a GitHub release with Windows x64 and macOS
-# universal packages. A manual run builds the same packages and either attaches
-# them to an existing tag or keeps them as workflow artifacts.
+# Release assets: Windows x86_64 portable ZIP + macOS universal DMG only.
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to attach packages to (leave empty to only build)"
+        description: "Existing tag to package/publish (empty: build artifacts only)"
         required: false
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref }}
   cancel-in-progress: false
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  windows:
-    name: Windows x64 package
-    runs-on: windows-latest
-    timeout-minutes: 90
+  prepare:
+    name: Validate release source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.manifest.outputs.version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
         with:
-          cache-on-failure: true
-      - name: Read version from the manifest
-        id: version
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - name: Check manifest version and tag
+        id: manifest
         shell: bash
+        env:
+          REQUESTED_TAG: ${{ inputs.tag || '' }}
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          version=$(awk -F'"' '/^version/ {print $2; exit}' Cargo.toml)
-          if [ -z "$version" ]; then
-            echo "Could not read the version from Cargo.toml" >&2
+          set -euo pipefail
+          version=$(awk -F '"' '/^version[[:space:]]*=/ {print $2; exit}' Cargo.toml)
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid package version in Cargo.toml: $version" >&2
+            exit 1
+          fi
+          tag="$REQUESTED_TAG"
+          if [[ "$REF_TYPE" == "tag" ]]; then tag="$REF_NAME"; fi
+          if [[ -n "$tag" && "$tag" != "v$version" ]]; then
+            echo "Release tag $tag must match Cargo.toml version $version" >&2
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Build release binary
-        run: cargo build -p argus-ui --release --locked
-      - name: Stage portable package
-        shell: bash
+
+  windows:
+    name: Package Windows x86_64
+    needs: prepare
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Build and package
+        shell: pwsh
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          stage="dist/argus-ui-${VERSION}-windows-x64"
-          mkdir -p "$stage"
-          cp target/release/argus-ui.exe "$stage/ArgusUI.exe"
-          cp README.md LICENSE CHANGELOG.md "$stage/"
-          printf '%s\n' \
-            "Argus UI ${VERSION} (Windows x64)" \
-            "" \
-            "Run ArgusUI.exe. No installer, runtime, or WebView is required." \
-            "Settings: %LOCALAPPDATA%\\Argus-UI\\settings.conf" \
-            "" \
-            "Windows SmartScreen may warn about this unsigned build:" \
-            "choose More info -> Run anyway." \
-            > "$stage/README.txt"
-          (cd dist && 7z a -tzip "argus-ui-${VERSION}-windows-x64.zip" "argus-ui-${VERSION}-windows-x64" > /dev/null)
-      - name: Upload package
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: ./scripts/package-windows.ps1 -Version $env:VERSION
+      - name: Upload Windows ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: windows-package
-          path: dist/*.zip
+          name: release-windows-x64
+          path: dist/argus-ui-*-windows-x64.zip
           if-no-files-found: error
 
   macos:
-    name: macOS universal package
+    name: Package macOS universal DMG
+    needs: prepare
     runs-on: macos-latest
     timeout-minutes: 120
-    outputs:
-      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-apple-darwin,x86_64-apple-darwin
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
-      - name: Read version from the manifest
-        id: version
+      - name: Build universal app and DMG
         shell: bash
-        run: |
-          version=$(awk -F'"' '/^version/ {print $2; exit}' Cargo.toml)
-          if [ -z "$version" ]; then
-            echo "Could not read the version from Cargo.toml" >&2
-            exit 1
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-      - name: Build both architectures
-        run: |
-          cargo build -p argus-ui --release --locked --target aarch64-apple-darwin
-          cargo build -p argus-ui --release --locked --target x86_64-apple-darwin
-      - name: Assemble universal app bundle
         env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          app="dist/Argus UI.app"
-          mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
-          lipo -create \
-            target/aarch64-apple-darwin/release/argus-ui \
-            target/x86_64-apple-darwin/release/argus-ui \
-            -output "$app/Contents/MacOS/argus-ui"
-          chmod +x "$app/Contents/MacOS/argus-ui"
-          {
-            printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>'
-            printf '%s\n' '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">'
-            printf '%s\n' '<plist version="1.0">' '<dict>'
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundleName "Argus UI"
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundleDisplayName "Argus UI"
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundleIdentifier dev.weepwood.argusui
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundleExecutable argus-ui
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundlePackageType APPL
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundleShortVersionString "${VERSION}"
-            printf '  <key>%s</key>\n  <string>%s</string>\n' CFBundleVersion "${VERSION}"
-            printf '  <key>%s</key>\n  <string>%s</string>\n' LSMinimumSystemVersion "12.0"
-            printf '  <key>%s</key>\n  <true/>\n' NSHighResolutionCapable
-            printf '  <key>%s</key>\n  <true/>\n' NSSupportsAutomaticGraphicsSwitching
-            printf '%s\n' '</dict>' '</plist>'
-          } > "$app/Contents/Info.plist"
-          plutil -lint "$app/Contents/Info.plist"
-          cp LICENSE CHANGELOG.md "$app/Contents/Resources/"
-          # Ad-hoc signature: arm64 binaries must carry a valid signature, and
-          # notarization would require an Apple developer ID.
-          codesign --force --deep --sign - "$app"
-          codesign --verify --deep --strict --verbose=2 "$app"
-          lipo -archs "$app/Contents/MacOS/argus-ui"
-          mkdir -p dist/package
-          ditto -c -k --keepParent "$app" "dist/package/argus-ui-${VERSION}-macos-universal.zip"
-          hdiutil create -volname "Argus UI" -srcfolder "$app" -ov -format UDZO \
-            "dist/package/argus-ui-${VERSION}-macos-universal.dmg"
-          shasum -a 256 dist/package/* > "dist/package/argus-ui-${VERSION}-macos-universal.sha256"
-      - name: Upload packages
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: bash scripts/package-macos.sh "$VERSION"
+      - name: Upload DMG only
         uses: actions/upload-artifact@v4
         with:
-          name: macos-package
-          path: dist/package/*
+          name: release-macos-dmg
+          path: dist/argus-ui-*-macos-universal.dmg
           if-no-files-found: error
 
   publish:
     name: Publish GitHub release
-    needs: [windows, macos]
+    needs: [prepare, windows, macos]
     if: >-
       startsWith(github.ref, 'refs/tags/v')
       || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          ref: ${{ inputs.tag || github.ref }}
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
-          path: artifacts
-      - name: Collect packages
-        run: |
-          set -euo pipefail
-          mkdir -p release
-          find artifacts -type f \( -name "*.zip" -o -name "*.dmg" -o -name "*.sha256" \) -exec cp {} release/ \;
-          ls -lh release
-      - name: Verify tag matches the manifest version
+          pattern: release-*
+          path: release
+          merge-multiple: true
+      - name: Validate exact asset set and produce checksums
+        shell: bash
         env:
-          TAG: ${{ inputs.tag || github.ref_name }}
-          VERSION: ${{ needs.windows.outputs.version }}
+          VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
-          if [ "$TAG" != "v$VERSION" ]; then
-            echo "Tag $TAG does not match Cargo.toml version $VERSION" >&2
+          windows="argus-ui-${VERSION}-windows-x64.zip"
+          macos="argus-ui-${VERSION}-macos-universal.dmg"
+          test -s "release/$windows"
+          test -s "release/$macos"
+          actual=$(find release -maxdepth 1 -type f -printf '%f\n' | sort)
+          expected=$(printf '%s\n' "$windows" "$macos" | sort)
+          if [[ "$actual" != "$expected" ]]; then
+            echo "Unexpected release assets:" >&2
+            find release -maxdepth 1 -type f -print >&2
             exit 1
           fi
-      - name: Publish release
+          unzip -Z -1 "release/$windows" | grep -Fxq "argus-ui-${VERSION}-windows-x64/ArgusUI.exe"
+          (cd release && sha256sum "$windows" "$macos" > SHA256SUMS.txt)
+          (cd release && sha256sum --check SHA256SUMS.txt)
+          ls -lh release/
+      - name: Publish tagged release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ inputs.tag || github.ref_name }}
-          VERSION: ${{ needs.windows.outputs.version }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        shell: bash
         run: |
           set -euo pipefail
-          if gh release view "$TAG" > /dev/null 2>&1; then
+          if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" release/* --clobber
+            # Clean legacy macOS ZIP/sidecars when replacing an older release.
+            while IFS= read -r asset; do
+              case "$asset" in
+                *-macos-*.zip|*-macos-*.sha256)
+                  gh release delete-asset "$TAG" "$asset" --yes ;;
+              esac
+            done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
           else
             gh release create "$TAG" release/* \
               --verify-tag \

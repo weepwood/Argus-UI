@@ -4,6 +4,15 @@ All notable changes to Argus UI are documented here. The project follows
 [Semantic Versioning](https://semver.org/) and every entry ships as a GitHub
 release with Windows x64 and macOS universal packages.
 
+## [Unreleased]
+
+### Build and packaging
+
+- Limit Windows builds and release packages to x86_64 MSVC; keep a portable ZIP.
+- Distribute macOS only as a universal DMG (Apple Silicon and Intel), with an Applications shortcut and verified code signature.
+- Share reproducible local packaging scripts with GitHub Actions, validate tag/source version and release assets, and publish a SHA-256 checksum manifest.
+- Stop uploading loose development executables from CI.
+
 ## [0.2.0] - 2026-11-21
 
 First packaged release for Windows and macOS.
