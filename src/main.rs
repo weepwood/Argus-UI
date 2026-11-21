@@ -11,6 +11,7 @@ mod components;
 mod data;
 mod design;
 mod pages;
+mod search;
 mod typography;
 
 use gpui_kit::assets::Assets;

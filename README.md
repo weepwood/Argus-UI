@@ -2,7 +2,7 @@
 
 A reusable, native Windows component gallery built with **Rust + GPUI Kit**, closely following the public interface design of [Argus](https://github.com/Ray-lea/Argus).
 
-> This is an independent UI component project. It does not include Argus source code, vendor patches, product assets, or system-management functionality.
+> This is an independent UI component project. It does not include Argus source code, proprietary product assets, or system-management functionality. The independently modified, Apache-2.0-licensed Windows backend is documented below.
 
 The project packages the reference layout as reusable components: command bar, horizontal page navigation, CPU/memory/disk/network/GPU summary strip, dense process table, right-side detail rail, status bar, and component gallery. It includes light/dark themes and local synthetic fixtures.
 
@@ -17,8 +17,7 @@ cargo run
 ```
 
 ```powershell
-cargo generate-lockfile
-cargo fmt --all
+cargo fmt --all -- --check
 cargo check --locked
 cargo test --locked
 cargo build --release --locked
@@ -33,12 +32,22 @@ cargo build --release --locked
 - Three text-clarity modes, including an opaque ClearType mode for the sharpest glyphs on translucent-window platforms.
 - Compact command bar, horizontal navigation, and reference-aligned split pane.
 - Five resource summaries with reusable line-chart metrics.
-- Dense process rows with search, sorting, selection, grouping, and a device/detail rail.
-- Secondary performance, services, startup, connections, history, and settings screens.
+- Three working process layouts: category groups, synthetic parent/child tree, and flat sorted list; searchable rows, selection, and a detail rail.
+- Secondary performance, services, startup, connections, history, and settings screens; shared search across all demo-data tables.
 - Reusable semantic colors, toolbar controls, panels, status tags, progress bars, and chart builders.
 - Windows CI and runnable release build artifact.
 
-**Demo data is synthetic and local; no privileged services, telemetry, or real process operations are performed.**
+**All displayed resources, process relationships, device specifications, services, network endpoints, and history entries are synthetic local fixtures.** The app performs no system-management operations, privileged actions, automatic polling, or telemetry.
+
+## Interaction guide
+
+- **View controls:** The command bar switches to the Processes page and selects category groups, parent/child tree, or a flat list. Tree parents are illustrative fixture IDs, not measured system relationships.
+- **Search:** Filter process names, executables, categories, or PIDs; on Services, Startup, Connections, and History, search all visible columns. Multiple search terms are combined with AND. If a process is matched but its parent is filtered out, the process becomes a top-level tree row.
+- **Sort:** Cycle between CPU, memory, and name order with the Sort control. In tree mode this controls sibling ordering, while keeping children under their parents.
+- **Details:** Select a process to inspect its fixture values. The right pane can be hidden from the command bar or Settings.
+- **Appearance:** Settings offers theme, row density, Windows backdrop, and text-clarity modes. These are currently session-only preferences.
+
+The **DEMO** indicator is intentional: the scaffold is meant for UI reuse and testing, not as an actual task manager. It never launches, suspends, or terminates a process.
 
 ## Layout
 

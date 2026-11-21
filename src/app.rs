@@ -97,8 +97,6 @@ pub struct Shell {
     pub(crate) selected_pid: Option<u32>,
     pub(crate) demo_clicks: u32,
     pub(crate) animations: bool,
-    pub(crate) refresh_paused: bool,
-    pub(crate) locked: bool,
     pub(crate) show_details: bool,
     subscriptions: Vec<Subscription>,
 }
@@ -131,8 +129,6 @@ impl Shell {
             selected_pid: None,
             demo_clicks: 0,
             animations: true,
-            refresh_paused: false,
-            locked: false,
             show_details: true,
             subscriptions,
         }
@@ -237,6 +233,7 @@ impl Shell {
         )
         .on_click(cx.listener(move |this, _, _, cx| {
             this.view = view;
+            this.page = Page::Processes;
             cx.notify();
         }))
         .into_any_element()
@@ -311,68 +308,7 @@ impl Shell {
                     .child(search),
             )
             .child(div().flex_1())
-            .child(
-                components::toolbar_button(
-                    "new-task",
-                    IconName::SquareTerminal,
-                    "运行新任务",
-                    p,
-                    false,
-                )
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.demo_clicks += 1;
-                    cx.notify();
-                })),
-            )
-            .child(
-                components::toolbar_button(
-                    "refresh-rate",
-                    IconName::ChevronDown,
-                    "每 1 秒",
-                    p,
-                    false,
-                )
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.refresh_paused = !this.refresh_paused;
-                    cx.notify();
-                })),
-            )
-            .child(
-                components::toolbar_button(
-                    "refresh-toggle",
-                    if self.refresh_paused {
-                        IconName::Play
-                    } else {
-                        IconName::Pause
-                    },
-                    "",
-                    p,
-                    self.refresh_paused,
-                )
-                .w(px(36.))
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.refresh_paused = !this.refresh_paused;
-                    cx.notify();
-                })),
-            )
-            .child(
-                components::toolbar_button(
-                    "elevation-lock",
-                    if self.locked {
-                        IconName::LockKeyhole
-                    } else {
-                        IconName::LockKeyholeOpen
-                    },
-                    "",
-                    p,
-                    self.locked,
-                )
-                .w(px(36.))
-                .on_click(cx.listener(|this, _, _, cx| {
-                    this.locked = !this.locked;
-                    cx.notify();
-                })),
-            )
+            .child(components::tag("DEMO · 本地模拟", p, false))
             .child(
                 components::toolbar_button(
                     "details-toggle",
@@ -551,31 +487,18 @@ impl Shell {
                     .flex()
                     .items_center()
                     .gap(px(14.))
-                    .child(components::tag("UI 0.1", p, false))
-                    .child("线程 2,536")
-                    .child("句柄 101,267")
-                    .child("缓存 7.7 GB")
-                    .child("已运行 5 天 14 小时"),
+                    .child(components::tag("UI 0.1 · Demo", p, false))
+                    .child("全部指标为静态演示数据")
+                    .child("不读取系统进程或资源"),
             )
             .child(
                 div()
                     .flex()
                     .items_center()
                     .gap(px(13.))
-                    .child(
-                        div()
-                            .flex()
-                            .items_center()
-                            .gap(px(5.))
-                            .child(div().size(px(6.)).rounded(px(3.)).bg(p.network))
-                            .child(if self.refresh_paused {
-                                "刷新已暂停"
-                            } else {
-                                "每 1 秒刷新"
-                            }),
-                    )
+                    .child(components::tag("不自动刷新", p, false))
                     .child(components::tag(self.effective_backdrop().title(), p, true))
-                    .child(components::tag("标准权限", p, false)),
+                    .child(components::tag("只读演示", p, false)),
             )
             .into_any_element()
     }
