@@ -1,0 +1,88 @@
+name: Native desktop CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Verify committed formatting
+        run: cargo fmt --all -- --check
+      - name: Check
+        run: cargo check --workspace --locked
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Tests
+        run: cargo test --workspace --locked
+      - name: Release build
+        if: github.event_name != 'pull_request'
+        run: cargo build -p argus-ui --release --locked
+      - name: Upload development build
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: argus-ui-windows-x64-dev
+          path: target/release/argus-ui.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS universal
+    runs-on: macos-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check
+        run: cargo check --workspace --locked
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Tests
+        run: cargo test --workspace --locked
+      - name: Release build
+        if: github.event_name != 'pull_request'
+        run: cargo build -p argus-ui --release --locked
+      - name: Upload development build
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: argus-ui-macos-arm64-dev
+          path: target/release/argus-ui
+          if-no-files-found: error
+
+  core-portability:
+    name: Portable core library (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test std-only core independently
+        run: cargo test --locked -p argus-ui-core
+      - name: Check core library
+        run: cargo check --locked -p argus-ui-core
+      - name: Run independent core consumer example
+        run: cargo run --locked -p argus-ui-core --example consumer

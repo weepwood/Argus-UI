@@ -51,7 +51,7 @@ The complete light and dark palettes are defined in `src/design.rs`.
 | Network | `#1CA65B` | `#56D39A` |
 | GPU | `#E13D79` | `#F277A9` |
 
-The hex values above are the solid-mode palette. With a translucent backdrop, `Palette::apply_material` replaces the window and card fills with layered alpha surfaces, keeps a faint root tint, and uses low-alpha ink for strokes and hover. Text, accent, and resource colours stay opaque so dense tables keep their contrast. Solid mode remains the fallback on unsupported Windows builds.
+The hex values above are the solid-mode palette. With a translucent backdrop, `Palette::apply_material` replaces the window and card fills with layered alpha surfaces, keeps a faint root tint, and uses low-alpha ink for strokes and hover. Text, accent, and resource colours stay opaque so dense tables keep their contrast. Solid mode remains the fallback on builds or platforms that cannot paint the requested material (for example Mica on macOS).
 
 ## Scope
 

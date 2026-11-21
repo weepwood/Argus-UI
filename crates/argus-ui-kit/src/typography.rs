@@ -4,7 +4,8 @@
 //! pages, dialogs and floating layers alike. Without an explicit CJK fallback
 //! DirectWrite resolves Chinese glyphs to the Japanese "Yu Gothic UI" face on
 //! an English system locale, and proportional digits make the process readings
-//! shift horizontally every time they refresh.
+//! shift horizontally every time they refresh. macOS uses the same structure
+//! with PingFang SC and the San Francisco system face.
 
 use std::sync::{Arc, OnceLock};
 
@@ -12,8 +13,9 @@ use gpui_kit::{
     App, Div, FontFallbacks, FontFeatures, SharedString, Stateful, Styled as _, font, relative,
 };
 
-/// Chinese first, then Latin faces. The order matters: DirectWrite walks this
-/// list for glyphs the primary family does not contain.
+/// Chinese first, then Latin faces. The order matters: the platform text
+/// engine walks this list for glyphs the primary family does not contain.
+#[cfg(target_os = "windows")]
 const FALLBACK_FONTS: [&str; 4] = [
     "Microsoft YaHei UI",
     "Microsoft YaHei",
@@ -21,8 +23,28 @@ const FALLBACK_FONTS: [&str; 4] = [
     "Arial Unicode MS",
 ];
 
+/// macOS ships PingFang SC; Hiragino Sans GB covers older installs.
+#[cfg(target_os = "macos")]
+const FALLBACK_FONTS: [&str; 4] = [
+    "PingFang SC",
+    "Hiragino Sans GB",
+    "Helvetica Neue",
+    "Arial Unicode MS",
+];
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+const FALLBACK_FONTS: [&str; 1] = [".SystemUIFont"];
+
 /// Windows 11's variable UI face, with a Win10-safe fallback.
+#[cfg(target_os = "windows")]
 const UI_FONTS: [&str; 3] = ["Segoe UI Variable", "Segoe UI", ".SystemUIFont"];
+
+/// `.SystemUIFont` resolves to San Francisco in GPUI's macOS backend.
+#[cfg(target_os = "macos")]
+const UI_FONTS: [&str; 2] = [".SystemUIFont", "Helvetica Neue"];
+
+#[cfg(not(any(target_os = "windows", target_os = "macos")))]
+const UI_FONTS: [&str; 1] = [".SystemUIFont"];
 
 pub fn fallbacks() -> FontFallbacks {
     FontFallbacks::from_fonts(FALLBACK_FONTS.iter().map(|name| (*name).into()).collect())

@@ -82,8 +82,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 },
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.density = Density::Comfortable;
-                cx.notify();
+                this.set_density(Density::Comfortable, cx);
             })),
         )
         .child(
@@ -98,8 +97,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 },
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.density = Density::Compact;
-                cx.notify();
+                this.set_density(Density::Compact, cx);
             })),
         );
     let clarity = div()
@@ -154,12 +152,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
         .w(px(760.))
         .max_w_full()
         .flex_col()
-        .child(setting_row(
-            p,
-            "文字渲染",
-            shell.clarity.hint(),
-            clarity,
-        ))
+        .child(setting_row(p, "文字渲染", shell.clarity.hint(), clarity))
         .child(setting_row(
             p,
             "窗口背景材质",
@@ -170,13 +163,13 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
             p,
             "系统材质支持",
             backdrop::support_note(),
-            components::tag("DWM 自动检测", p, false),
+            components::tag(backdrop::material_tag(), p, false),
         ))
         .child(setting_row(
             p,
             "抗锯齿机制",
-            "GPUI 仅在窗口不透明时启用 ClearType 子像素渲染；半透明材质下走 DirectWrite 灰度抗锯齿。",
-            components::tag("GPUI / DirectWrite", p, false),
+            backdrop::antialiasing_note(),
+            components::tag(backdrop::antialiasing_tag(), p, false),
         ))
         .child(setting_row(
             p,
@@ -205,9 +198,17 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 ButtonTone::Normal,
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.show_details = !this.show_details;
-                cx.notify();
+                this.toggle_details(cx);
             })),
+        ))
+        .child(setting_row(
+            p,
+            "配置持久化",
+            shell
+                .preferences_error
+                .clone()
+                .unwrap_or_else(|| shell.preferences_file_location()),
+            components::tag("自动保存", p, true),
         ))
         .child(setting_row(
             p,
@@ -220,8 +221,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 ButtonTone::Normal,
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.animations = !this.animations;
-                cx.notify();
+                this.toggle_animations(cx);
             })),
         ));
     div()

@@ -1,0 +1,12 @@
+[package]
+name = "argus-ui-kit"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.99.1"
+description = "Cross-platform GPUI Kit design tokens, visuals, and native materials"
+license = "MIT"
+repository = "https://github.com/weepwood/Argus-UI"
+publish = false
+
+[dependencies]
+gpui-kit = "=0.8.0"

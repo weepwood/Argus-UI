@@ -5,6 +5,8 @@ use crate::{
     data::{CPU_SERIES, DISK_SERIES, GPU_SERIES, MEMORY_SERIES, NET_SERIES, SortBy},
     design::{Appearance, Density, MaterialClarity, Palette},
     pages,
+    preferences::Preferences,
+    settings_store::SettingsStore,
 };
 use gpui_kit::{
     assets::IconName,
@@ -98,11 +100,19 @@ pub struct Shell {
     pub(crate) demo_clicks: u32,
     pub(crate) animations: bool,
     pub(crate) show_details: bool,
+    preferences_store: Option<SettingsStore>,
+    pub(crate) preferences_error: Option<String>,
     subscriptions: Vec<Subscription>,
 }
 
 impl Shell {
-    pub fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        preferences: Preferences,
+        preferences_store: Option<SettingsStore>,
+        preferences_error: Option<String>,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let search =
             cx.new(|cx| InputState::new(window, cx).placeholder("搜索名称、PID、路径或服务"));
         let reference = search.clone();
@@ -116,32 +126,92 @@ impl Shell {
                 }
             },
         )];
-        Self {
+        let shell = Self {
             page: Page::Processes,
-            appearance: Appearance::Light,
-            backdrop: Backdrop::auto(),
-            clarity: MaterialClarity::Crisp,
-            density: Density::Comfortable,
+            appearance: preferences.appearance,
+            backdrop: preferences.backdrop,
+            clarity: preferences.clarity,
+            density: preferences.density,
             view: ProcessView::Apps,
             sort: SortBy::Cpu,
             query: String::new(),
             search,
             selected_pid: None,
             demo_clicks: 0,
-            animations: true,
-            show_details: true,
+            animations: preferences.animations,
+            show_details: preferences.show_details,
+            preferences_store,
+            preferences_error,
             subscriptions,
+        };
+        Theme::change(
+            match shell.appearance {
+                Appearance::Light => ThemeMode::Light,
+                Appearance::Dark => ThemeMode::Dark,
+            },
+            Some(window),
+            cx,
+        );
+        window.set_background_appearance(shell.effective_backdrop().appearance());
+        cx.set_text_rendering_mode(if shell.clarity == MaterialClarity::Sharp {
+            TextRenderingMode::Subpixel
+        } else {
+            TextRenderingMode::PlatformDefault
+        });
+        shell
+    }
+
+    fn preferences(&self) -> Preferences {
+        Preferences {
+            appearance: self.appearance,
+            density: self.density,
+            backdrop: self.backdrop,
+            clarity: self.clarity,
+            show_details: self.show_details,
+            animations: self.animations,
         }
+    }
+
+    pub(crate) fn preferences_file_location(&self) -> String {
+        self.preferences_store
+            .as_ref()
+            .map(|store| format!("配置文件：{}", store.path().display()))
+            .unwrap_or_else(|| "未找到可写入的用户设置目录".to_string())
+    }
+
+    pub(crate) fn persist_preferences(&mut self) {
+        if let Some(store) = &self.preferences_store {
+            self.preferences_error = store
+                .write(&self.preferences().encode())
+                .err()
+                .map(|error| format!("保存设置失败：{error}"));
+        }
+    }
+
+    pub(crate) fn set_density(&mut self, density: Density, cx: &mut Context<Self>) {
+        if self.density != density {
+            self.density = density;
+            self.persist_preferences();
+            cx.notify();
+        }
+    }
+
+    pub(crate) fn toggle_details(&mut self, cx: &mut Context<Self>) {
+        self.show_details = !self.show_details;
+        self.persist_preferences();
+        cx.notify();
+    }
+
+    pub(crate) fn toggle_animations(&mut self, cx: &mut Context<Self>) {
+        self.animations = !self.animations;
+        self.persist_preferences();
+        cx.notify();
     }
 
     /// `Sharp` trades the DWM material for an opaque window so GPUI can use
     /// ClearType; every other mode keeps the material the user picked.
     pub(crate) fn effective_backdrop(&self) -> Backdrop {
-        if self.clarity == MaterialClarity::Sharp {
-            Backdrop::Opaque
-        } else {
-            self.backdrop
-        }
+        self.preferences().resolved_backdrop()
     }
 
     pub(crate) fn palette(&self) -> Palette {
@@ -154,6 +224,9 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
+        if self.appearance == mode {
+            return;
+        }
         self.appearance = mode;
         Theme::change(
             match mode {
@@ -163,6 +236,7 @@ impl Shell {
             Some(window),
             cx,
         );
+        self.persist_preferences();
         cx.notify();
     }
 
@@ -184,6 +258,7 @@ impl Shell {
         } else {
             TextRenderingMode::PlatformDefault
         });
+        self.persist_preferences();
         cx.notify();
     }
 
@@ -204,6 +279,7 @@ impl Shell {
             cx.set_text_rendering_mode(TextRenderingMode::PlatformDefault);
         }
         window.set_background_appearance(self.effective_backdrop().appearance());
+        self.persist_preferences();
         cx.notify();
     }
 
@@ -319,8 +395,7 @@ impl Shell {
                 )
                 .w(px(36.))
                 .on_click(cx.listener(|this, _, _, cx| {
-                    this.show_details = !this.show_details;
-                    cx.notify();
+                    this.toggle_details(cx);
                 })),
             )
             .child(
@@ -489,7 +564,11 @@ impl Shell {
                     .gap(px(14.))
                     .child(components::tag("UI 0.1 · Demo", p, false))
                     .child("全部指标为静态演示数据")
-                    .child("不读取系统进程或资源"),
+                    .child(
+                        self.preferences_error
+                            .clone()
+                            .unwrap_or_else(|| "更改设置会自动保存".to_string()),
+                    ),
             )
             .child(
                 div()
@@ -521,7 +600,6 @@ impl Render for Shell {
             .flex()
             .flex_col()
             .size_full()
-            .font_family("Segoe UI Variable")
             .text_size(px(12.))
             .text_color(p.text)
             .bg(p.background)
