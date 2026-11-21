@@ -39,7 +39,13 @@ jobs:
       - name: Read version from the manifest
         id: version
         shell: bash
-        run: echo "version=$(grep -m1 '^version' Cargo.toml | cut -d'\"' -f2)" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(awk -F'"' '/^version/ {print $2; exit}' Cargo.toml)
+          if [ -z "$version" ]; then
+            echo "Could not read the version from Cargo.toml" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Build release binary
         run: cargo build -p argus-ui --release --locked
       - name: Stage portable package
@@ -86,7 +92,13 @@ jobs:
       - name: Read version from the manifest
         id: version
         shell: bash
-        run: echo "version=$(grep -m1 '^version' Cargo.toml | cut -d'\"' -f2)" >> "$GITHUB_OUTPUT"
+        run: |
+          version=$(awk -F'"' '/^version/ {print $2; exit}' Cargo.toml)
+          if [ -z "$version" ]; then
+            echo "Could not read the version from Cargo.toml" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
       - name: Build both architectures
         run: |
           cargo build -p argus-ui --release --locked --target aarch64-apple-darwin
