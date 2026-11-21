@@ -1,6 +1,8 @@
 name: fmt-debug
 
 on:
+  push:
+    branches: [arena/fbe7e765-argus-ui]
   workflow_dispatch:
 
 permissions:
