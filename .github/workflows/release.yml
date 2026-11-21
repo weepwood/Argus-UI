@@ -3,6 +3,7 @@ name: Release
 # Release assets: Windows x86_64 portable ZIP + macOS universal DMG only.
 on:
   push:
+    branches: [main]
     tags: ["v*"]
   workflow_dispatch:
     inputs:
@@ -28,10 +29,12 @@ jobs:
     timeout-minutes: 5
     outputs:
       version: ${{ steps.manifest.outputs.version }}
+      package: ${{ steps.manifest.outputs.package }}
+      publish: ${{ steps.manifest.outputs.publish }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.sha }}
           persist-credentials: false
       - name: Check manifest version and tag
         id: manifest
@@ -54,16 +57,36 @@ jobs:
             exit 1
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
+          # A new main-branch version automatically creates its Git tag and Release.
+          # No release build for routine main commits where that tag already exists.
+          if [[ "$GITHUB_EVENT_NAME" == "push" && "$GITHUB_REF" == "refs/heads/main" ]]; then
+            if git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>&1; then
+              echo "Version v$version is already tagged; skipping release packaging."
+              echo "package=false" >> "$GITHUB_OUTPUT"
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "package=true" >> "$GITHUB_OUTPUT"
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "package=true" >> "$GITHUB_OUTPUT"
+            if [[ -n "$tag" ]]; then
+              echo "publish=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "publish=false" >> "$GITHUB_OUTPUT"
+            fi
+          fi
 
   windows:
     name: Package Windows x86_64
     needs: prepare
+    if: needs.prepare.outputs.package == 'true'
     runs-on: windows-latest
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.sha }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -86,12 +109,13 @@ jobs:
   macos:
     name: Package macOS universal DMG
     needs: prepare
+    if: needs.prepare.outputs.package == 'true'
     runs-on: macos-latest
     timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.sha }}
           persist-credentials: false
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -114,9 +138,7 @@ jobs:
   publish:
     name: Publish GitHub release
     needs: [prepare, windows, macos]
-    if: >-
-      startsWith(github.ref, 'refs/tags/v')
-      || (github.event_name == 'workflow_dispatch' && inputs.tag != '')
+    if: needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -124,7 +146,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ inputs.tag || github.sha }}
           persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
@@ -155,7 +177,7 @@ jobs:
       - name: Publish tagged release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ inputs.tag || github.ref_name }}
+          TAG: v${{ needs.prepare.outputs.version }}
           VERSION: ${{ needs.prepare.outputs.version }}
         shell: bash
         run: |
@@ -170,8 +192,17 @@ jobs:
               esac
             done < <(gh release view "$TAG" --json assets --jq '.assets[].name')
           else
-            gh release create "$TAG" release/* \
-              --verify-tag \
-              --title "Argus UI v$VERSION" \
-              --notes-file CHANGELOG.md
+            # On a main-branch version bump, create the tag directly on this
+            # successful build's immutable commit; otherwise require an existing tag.
+            if [[ "$GITHUB_REF" == "refs/heads/main" ]]; then
+              gh release create "$TAG" release/* \
+                --target "$GITHUB_SHA" \
+                --title "Argus UI v$VERSION" \
+                --notes-file CHANGELOG.md
+            else
+              gh release create "$TAG" release/* \
+                --verify-tag \
+                --title "Argus UI v$VERSION" \
+                --notes-file CHANGELOG.md
+            fi
           fi

@@ -215,7 +215,7 @@ dependencies = [
 
 [[package]]
 name = "argus-ui"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "argus-ui-core",
  "argus-ui-kit",
@@ -224,11 +224,11 @@ dependencies = [
 
 [[package]]
 name = "argus-ui-core"
-version = "0.2.0"
+version = "0.2.1"
 
 [[package]]
 name = "argus-ui-kit"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "gpui-kit",
 ]
