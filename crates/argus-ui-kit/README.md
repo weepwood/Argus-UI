@@ -1,10 +1,11 @@
 # argus-ui-kit
 
-A Windows-first GPUI Kit 0.8 visual library extracted from the Argus-UI
+A cross-platform GPUI Kit 0.8 visual library extracted from the Argus-UI
 desktop demo. It exposes stateless components, semantic design tokens,
-typography helpers and native Windows backdrop integration.
+typography helpers and native window materials (DWM Mica/Acrylic on Windows,
+`NSVisualEffectView` vibrancy on macOS).
 
-## In another Windows GPUI project
+## In another GPUI desktop project
 
 ```toml
 [dependencies]

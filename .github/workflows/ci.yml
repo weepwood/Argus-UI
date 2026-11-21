@@ -1,4 +1,4 @@
-name: Windows native build
+name: Native desktop CI
 
 on:
   push:
@@ -9,8 +9,12 @@ on:
 permissions:
   contents: read
 
+env:
+  CARGO_TERM_COLOR: always
+
 jobs:
-  build:
+  windows:
+    name: Windows x64
     runs-on: windows-latest
     timeout-minutes: 70
     steps:
@@ -32,12 +36,41 @@ jobs:
       - name: Release build
         if: github.event_name != 'pull_request'
         run: cargo build -p argus-ui --release --locked
-      - name: Package native executable
+      - name: Upload development build
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: argus-ui-windows-x64
+          name: argus-ui-windows-x64-dev
           path: target/release/argus-ui.exe
+          if-no-files-found: error
+
+  macos:
+    name: macOS universal
+    runs-on: macos-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check
+        run: cargo check --workspace --locked
+      - name: Lint
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - name: Tests
+        run: cargo test --workspace --locked
+      - name: Release build
+        if: github.event_name != 'pull_request'
+        run: cargo build -p argus-ui --release --locked
+      - name: Upload development build
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: argus-ui-macos-arm64-dev
+          path: target/release/argus-ui
           if-no-files-found: error
 
   core-portability:

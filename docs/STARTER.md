@@ -1,16 +1,17 @@
 # Reusing Argus-UI as a GPUI desktop starter
 
-Argus-UI is a **Windows-first Rust + GPUI Kit 0.8** desktop starter. It
+Argus-UI is a **Rust + GPUI Kit 0.8** desktop starter for Windows and macOS. It
 demonstrates architecture and reusable visual elements; it is **not** a process
-manager or a platform-neutral GPUI template yet. The demo's process, hardware,
-connection, and history values are synthetic.
+manager. The demo's process, hardware, connection, and history values are
+synthetic, and the native window materials degrade to a solid surface on any
+platform that cannot paint them.
 
 ## Dependency boundaries
 
 | Layer | Location | Reuse strategy |
 | --- | --- | --- |
 | Presentation tokens | `crates/argus-ui-kit/src/design.rs` | Keep semantic colors and density controls; substitute your product palette |
-| Native window materials | `crates/argus-ui-kit/src/backdrop.rs`, `crates/argus-ui-kit/src/typography.rs` | Optional Windows-only integration; select opaque mode if a material isn't supported |
+| Native window materials | `crates/argus-ui-kit/src/backdrop.rs`, `crates/argus-ui-kit/src/typography.rs` | Optional native integration; `Backdrop::is_available()` reports what the running OS supports and opaque mode is always safe |
 | Visual primitives | `crates/argus-ui-kit/src/components.rs` | Import the library's stateless builders directly |
 | Settings file storage | `crates/argus-ui-core/src/settings_store.rs` | Pure standard library; reusable without GPUI |
 | Typed preferences | `src/preferences.rs` | Replace with your application's settings schema and version |
@@ -19,8 +20,8 @@ connection, and history values are synthetic.
 | Demo data | `src/data.rs` | Replace wholesale with domain types or repositories |
 | Search | `crates/argus-ui-core/src/search.rs` | Pure matching logic; keep it independent from the renderer |
 
-The native Windows renderer is a locally patched version of an Apache-2.0
-GPUI backend. Its notes and provenance are in
+The Windows text renderer is a locally patched version of an Apache-2.0
+GPUI backend (macOS uses the stock backend). Its notes and provenance are in
 [`vendor/gpui-pre-windows/PATCHES.md`](../vendor/gpui-pre-windows/PATCHES.md).
 Do not copy the backend without reviewing its license and maintenance costs.
 
@@ -96,14 +97,15 @@ When adding a preference:
 
 ## Validation and current limits
 
-Use the existing Windows CI for `cargo fmt --all -- --check`,
+Use the `Native desktop CI` workflow, or run locally: `cargo fmt --all -- --check`,
 `cargo check --workspace --locked`, `cargo clippy --workspace --all-targets --locked -- -D warnings`,
-and `cargo test --workspace --locked`. The portable core crate can be tested on Linux using
+and `cargo test --workspace --locked`. The portable core crate can be tested anywhere with
 `cargo test -p argus-ui-core --locked`. Window behavior, DPI scaling, contrast, backdrop
-availability, keyboard input, and GPU memory usage still require a real
-Windows 10/11 desktop session.
+availability, keyboard input, and GPU memory usage still require a real desktop
+session on Windows 10/11 or macOS 12+.
 
 Not yet included: application-wide keyboard command routing, focus management,
-virtualized multi-thousand-row tables, auto-updates, crash reporting, or
-cross-platform builds. Those should be separate, testable stages rather than
-being silently implied by the demo.
+virtualized multi-thousand-row tables, auto-updates, crash reporting, Linux or
+Web builds, and commercial code signing/notarization. Those should be separate,
+testable stages rather than being silently implied by the demo.
+
