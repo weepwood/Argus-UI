@@ -1,6 +1,6 @@
 [package]
 name = "argus-ui-core"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.99.1"
 description = "Portable settings storage and search utilities for Rust desktop applications"

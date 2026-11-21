@@ -6,12 +6,15 @@ release with Windows x64 and macOS universal packages.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-21
+
 ### Build and packaging
 
 - Limit Windows builds and release packages to x86_64 MSVC; keep a portable ZIP.
 - Distribute macOS only as a universal DMG (Apple Silicon and Intel), with an Applications shortcut and verified code signature.
 - Share reproducible local packaging scripts with GitHub Actions, validate tag/source version and release assets, and publish a SHA-256 checksum manifest.
 - Stop uploading loose development executables from CI.
+- Automatically create a version tag and publish both packages after a passing release update on the main branch.
 
 ## [0.2.0] - 2026-11-21
 

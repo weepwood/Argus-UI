@@ -155,9 +155,9 @@ Preferences are stored as versioned plain text in the per-user configuration dir
 
 ## Releases
 
-1. Bump `version` in `Cargo.toml` and both crate manifests, update `CHANGELOG.md`, commit.
-2. Tag the merge commit: `git tag v0.2.0 && git push origin v0.2.0`.
-3. `.github/workflows/release.yml` builds only a Windows x86_64 portable ZIP and a macOS universal DMG, validates the source tag and expected asset names, generates `SHA256SUMS.txt`, and publishes the GitHub release.
+1. Bump `version` in `Cargo.toml`, both crate manifests, and `Cargo.lock`, then update `CHANGELOG.md`.
+2. Merge the release commit into `main`. If `v<version>` does not already exist, the Release workflow packages this exact commit and automatically creates its version tag and GitHub release.
+3. The workflow builds only a Windows x86_64 ZIP and a macOS universal DMG, validates expected asset names, generates `SHA256SUMS.txt`, and publishes them. An existing version tag can also be repackaged manually or with a tag push.
 
 A manual `Release` run without a tag only builds the Windows ZIP and macOS DMG as workflow artifacts; CI does not upload loose executables. To package an existing tag, provide that tag in the manual input: the workflow checks out the tag before building. You can reproduce the same packages locally using `powershell -File scripts/package-windows.ps1 -Version <version>` on Windows or `bash scripts/package-macos.sh <version>` on macOS.
 
