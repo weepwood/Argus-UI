@@ -34,7 +34,8 @@ cargo build --release --locked
 - Five resource summaries with reusable line-chart metrics.
 - Three working process layouts: category groups, synthetic parent/child tree, and flat sorted list; searchable rows, selection, and a detail rail.
 - Secondary performance, services, startup, connections, history, and settings screens; shared search across all demo-data tables.
-- Reusable semantic colors, toolbar controls, panels, status tags, progress bars, and chart builders.
+- Reusable semantic colors, toolbar controls, panels, status tags, progress bars, charts, and stateless dense table builders.
+- Versioned local preferences with safe startup fallback and automatic saving (no extra Rust dependencies).
 - Windows CI and runnable release build artifact.
 
 **All displayed resources, process relationships, device specifications, services, network endpoints, and history entries are synthetic local fixtures.** The app performs no system-management operations, privileged actions, automatic polling, or telemetry.
@@ -45,7 +46,7 @@ cargo build --release --locked
 - **Search:** Filter process names, executables, categories, or PIDs; on Services, Startup, Connections, and History, search all visible columns. Multiple search terms are combined with AND. If a process is matched but its parent is filtered out, the process becomes a top-level tree row.
 - **Sort:** Cycle between CPU, memory, and name order with the Sort control. In tree mode this controls sibling ordering, while keeping children under their parents.
 - **Details:** Select a process to inspect its fixture values. The right pane can be hidden from the command bar or Settings.
-- **Appearance:** Settings offers theme, row density, Windows backdrop, and text-clarity modes. These are currently session-only preferences.
+- **Appearance:** Settings offers theme, row density, Windows backdrop, text-clarity modes, and saved layout options. Preferences persist in the current Windows user's local app-data directory and are restored on launch.
 
 The **DEMO** indicator is intentional: the scaffold is meant for UI reuse and testing, not as an actual task manager. It never launches, suspends, or terminates a process.
 
@@ -60,6 +61,10 @@ src/
   typography.rs             # window-wide font stack, CJK fallbacks, tabular figures
   components.rs             # reusable visual builders
   data.rs                   # typed demo models
+  search.rs                 # reusable pure-Rust keyword matching
+  preferences.rs            # typed, versioned UI preference schema
+  foundation/
+    settings_store.rs       # plain text read/write with temp-file replacement
   pages/
     mod.rs
     overview.rs             # performance charts
@@ -71,7 +76,7 @@ vendor/gpui-pre-windows/    # patched Apache-2.0 Windows text backend (see PATCH
 .github/workflows/windows.yml
 ```
 
-See [Architecture](docs/ARCHITECTURE.md) and [Design specification](docs/DESIGN.md) for structure and visual rules.
+See [Architecture](docs/ARCHITECTURE.md), [Starter and extension guide](docs/STARTER.md), and [Design specification](docs/DESIGN.md) for structure, portability limits, and visual rules.
 
 ## Window materials
 
@@ -112,7 +117,9 @@ Not reproduced from the reference: the variable-font `wght` axis and the line-he
 
 ## Customization
 
-Edit `src/design.rs` for colors, spacing, and typography. Replace sample records in `src/data.rs` with your own strongly typed models. Add a page in `src/pages/`, and route to it from `src/app.rs`. Do not move domain-specific state into reusable visual components.
+Edit `src/design.rs` for colors, spacing, and typography. Replace sample records in `src/data.rs` with your own strongly typed models. Add a page in `src/pages/`, and route to it from `src/app.rs`. Do not move domain-specific state into reusable visual components. For a new product, replace `Preferences` and the `Argus-UI` config directory with your own schema and application identifier. See [Starter and extension guide](docs/STARTER.md).
+
+Preferences are stored as versioned plain text at `%LOCALAPPDATA%\\Argus-UI\\settings.conf` (override the directory with `ARGUS_UI_CONFIG_DIR`). The file contains only non-sensitive appearance/layout values. Saving occurs in event handlers, not per render. Startup always falls back to defaults if the configuration is unreadable or its version unsupported.
 
 ## Relationship to Argus
 

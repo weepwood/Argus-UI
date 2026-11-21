@@ -82,8 +82,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 },
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.density = Density::Comfortable;
-                cx.notify();
+                this.set_density(Density::Comfortable, cx);
             })),
         )
         .child(
@@ -98,8 +97,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 },
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.density = Density::Compact;
-                cx.notify();
+                this.set_density(Density::Compact, cx);
             })),
         );
     let clarity = div()
@@ -205,9 +203,17 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 ButtonTone::Normal,
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.show_details = !this.show_details;
-                cx.notify();
+                this.toggle_details(cx);
             })),
+        ))
+        .child(setting_row(
+            p,
+            "配置持久化",
+            shell
+                .preferences_error
+                .clone()
+                .unwrap_or_else(|| shell.preferences_file_location()),
+            components::tag("自动保存", p, true),
         ))
         .child(setting_row(
             p,
@@ -220,8 +226,7 @@ pub fn render(shell: &mut Shell, _window: &mut Window, cx: &mut Context<Shell>) 
                 ButtonTone::Normal,
             )
             .on_click(cx.listener(|this, _, _, cx| {
-                this.animations = !this.animations;
-                cx.notify();
+                this.toggle_animations(cx);
             })),
         ));
     div()
