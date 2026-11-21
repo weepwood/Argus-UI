@@ -24,14 +24,14 @@ jobs:
       - name: Verify committed formatting
         run: cargo fmt --all -- --check
       - name: Check
-        run: cargo check --locked
+        run: cargo check --workspace --locked
       - name: Lint
-        run: cargo clippy --all-targets --locked -- -D warnings
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
       - name: Tests
-        run: cargo test --locked
+        run: cargo test --workspace --locked
       - name: Release build
         if: github.event_name != 'pull_request'
-        run: cargo build --release --locked
+        run: cargo build -p argus-ui --release --locked
       - name: Package native executable
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
@@ -39,3 +39,17 @@ jobs:
           name: argus-ui-windows-x64
           path: target/release/argus-ui.exe
           if-no-files-found: error
+
+  core-portability:
+    name: Portable core library (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test std-only core independently
+        run: cargo test --locked -p argus-ui-core
+      - name: Check core library
+        run: cargo check --locked -p argus-ui-core
+      - name: Run independent core consumer example
+        run: cargo run --locked -p argus-ui-core --example consumer
