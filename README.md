@@ -34,7 +34,8 @@ cargo build --release --locked
 - Five resource summaries with reusable line-chart metrics.
 - Three working process layouts: category groups, synthetic parent/child tree, and flat sorted list; searchable rows, selection, and a detail rail.
 - Secondary performance, services, startup, connections, history, and settings screens; shared search across all demo-data tables.
-- Reusable semantic colors, toolbar controls, panels, status tags, progress bars, and chart builders.
+- Reusable semantic colors, toolbar controls, panels, status tags, progress bars, charts, and stateless dense table builders.
+- Versioned local preferences with safe startup fallback and automatic saving (no extra Rust dependencies).
 - Windows CI and runnable release build artifact.
 
 **All displayed resources, process relationships, device specifications, services, network endpoints, and history entries are synthetic local fixtures.** The app performs no system-management operations, privileged actions, automatic polling, or telemetry.
@@ -45,37 +46,53 @@ cargo build --release --locked
 - **Search:** Filter process names, executables, categories, or PIDs; on Services, Startup, Connections, and History, search all visible columns. Multiple search terms are combined with AND. If a process is matched but its parent is filtered out, the process becomes a top-level tree row.
 - **Sort:** Cycle between CPU, memory, and name order with the Sort control. In tree mode this controls sibling ordering, while keeping children under their parents.
 - **Details:** Select a process to inspect its fixture values. The right pane can be hidden from the command bar or Settings.
-- **Appearance:** Settings offers theme, row density, Windows backdrop, and text-clarity modes. These are currently session-only preferences.
+- **Appearance:** Settings offers theme, row density, Windows backdrop, text-clarity modes, and saved layout options. Preferences persist in the current Windows user's local app-data directory and are restored on launch.
 
 The **DEMO** indicator is intentional: the scaffold is meant for UI reuse and testing, not as an actual task manager. It never launches, suspends, or terminates a process.
 
-## Layout
+## Workspace structure
 
 ```text
+Cargo.toml                  # workspace root + Windows demo executable
+crates/
+  argus-ui-core/            # std-only: settings_store and search (portable)
+  argus-ui-kit/             # GPUI 0.8: components, design, typography, backdrop
 src/
-  main.rs                   # bootstrap
-  app.rs                    # shell + typed route/actions
-  backdrop.rs               # native window materials and OS capability detection
-  design.rs                 # semantic light/dark design tokens
-  typography.rs             # window-wide font stack, CJK fallbacks, tabular figures
-  components.rs             # reusable visual builders
-  data.rs                   # typed demo models
-  pages/
-    mod.rs
-    overview.rs             # performance charts
-    processes.rs            # process table and detail rail
-    catalog.rs              # reusable secondary table screens
-    showcase.rs             # component gallery
-    settings.rs             # theme / density / material / text clarity controls
-vendor/gpui-pre-windows/    # patched Apache-2.0 Windows text backend (see PATCHES.md)
+  main.rs                   # demo window bootstrap / re-export adapter
+  app.rs                    # demo shell and navigation state
+  data.rs                   # synthetic demonstration models
+  preferences.rs            # demo-specific configuration schema
+  pages/                    # feature renderers and component gallery
+vendor/gpui-pre-windows/    # local Apache-2.0 backend patch
 .github/workflows/windows.yml
 ```
 
-See [Architecture](docs/ARCHITECTURE.md) and [Design specification](docs/DESIGN.md) for structure and visual rules.
+The demo depends on both local crates using Cargo path dependencies. To reuse them,
+add the crates via a Git dependency (pin a commit), or vendor the specific crate;
+**do not copy demo app state or fixture data into your library**.
+
+```toml
+[dependencies]
+argus-ui-core = { git = "https://github.com/weepwood/Argus-UI", package = "argus-ui-core" }
+argus-ui-kit = { git = "https://github.com/weepwood/Argus-UI", package = "argus-ui-kit" }
+```
+
+The visual crate is Windows-first and follows this repository's pinned GPUI Kit version.
+The core crate does not depend on GPUI. From the workspace root:
+
+```powershell
+cargo fmt --all -- --check
+cargo check --workspace --locked
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked
+cargo test -p argus-ui-core --locked
+```
+
+See [Architecture](docs/ARCHITECTURE.md), [Starter and extension guide](docs/STARTER.md), and [Design specification](docs/DESIGN.md) for structure, portability limits, and visual rules.
 
 ## Window materials
 
-The shell uses DWM system backdrops rather than faking blur inside the UI. `src/backdrop.rs` maps five modes to `WindowBackgroundAppearance` and detects the OS build with `RtlGetVersion`:
+The shell uses DWM system backdrops rather than faking blur inside the UI. `crates/argus-ui-kit/src/backdrop.rs` maps five modes to `WindowBackgroundAppearance` and detects the OS build with `RtlGetVersion`:
 
 | Mode | GPUI appearance | Minimum build |
 |---|---|---|
@@ -96,7 +113,7 @@ Keeping the material **and** sharp grayscale glyphs requires a small fork of the
 - Upstream re-rasterizes translucent-window text with `DWRITE_TEXT_ANTIALIAS_MODE_GRAYSCALE` into a single-channel bitmap, discarding subpixel spatial detail. The local patch keeps DirectWrite's `CLEARTYPE_3x1` LCD coverage and folds the three stripes by the system pixel geometry's luminance (RGB `54/183/19`, BGR `19/183/54`, 1/256 units), returning the same single-channel mask the atlas expects.
 - `alpha_correction.hlsl` applies Skia's mask gamma to dark ink on light surfaces and DirectWrite's brightness-attenuated contrast to light ink, so neither mode thickens antialiased stroke edges.
 
-`src/typography.rs` installs the window-wide font stack through the root plugin: a probed Segoe UI face, an explicit Simplified Chinese fallback chain (on an English system locale DirectWrite otherwise resolves Chinese to Japanese Yu Gothic UI), `tnum` tabular figures, and a 1.4 line height. `Palette::text_plate` pre-composes each text-bearing surface over the opaque window colour and forces it opaque, the same technique the reference uses to stop stacked translucent fills from darkening the composite.
+`crates/argus-ui-kit/src/typography.rs` installs the window-wide font stack through the root plugin: a probed Segoe UI face, an explicit Simplified Chinese fallback chain (on an English system locale DirectWrite otherwise resolves Chinese to Japanese Yu Gothic UI), `tnum` tabular figures, and a 1.4 line height. `Palette::text_plate` pre-composes each text-bearing surface over the opaque window colour and forces it opaque, the same technique the reference uses to stop stacked translucent fills from darkening the composite.
 
 The Settings page offers three clarity modes (`MaterialClarity` in `src/design.rs`):
 
@@ -112,7 +129,9 @@ Not reproduced from the reference: the variable-font `wght` axis and the line-he
 
 ## Customization
 
-Edit `src/design.rs` for colors, spacing, and typography. Replace sample records in `src/data.rs` with your own strongly typed models. Add a page in `src/pages/`, and route to it from `src/app.rs`. Do not move domain-specific state into reusable visual components.
+Edit `crates/argus-ui-kit/src/design.rs` for colors, spacing, and typography. Replace sample records in `src/data.rs` with your own strongly typed models. Add a page in `src/pages/`, and route to it from `src/app.rs`. Do not move domain-specific state into reusable visual components. For a new product, replace `Preferences` and the `Argus-UI` config directory with your own schema and application identifier. See [Starter and extension guide](docs/STARTER.md).
+
+Preferences are stored as versioned plain text at `%LOCALAPPDATA%\\Argus-UI\\settings.conf` (override the directory with `ARGUS_UI_CONFIG_DIR`). The file contains only non-sensitive appearance/layout values. Saving occurs in event handlers, not per render. Startup always falls back to defaults if the configuration is unreadable or its version unsupported.
 
 ## Relationship to Argus
 

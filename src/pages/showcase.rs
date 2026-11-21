@@ -73,5 +73,35 @@ pub fn render(shell: &mut Shell, cx: &mut Context<Shell>) -> AnyElement {
                 .child(components::small_label(
                     "组件是独立的样式构造函数，不依赖页面业务。真实业务状态保存在各 Feature 或 Shell。",p))
         )
+        .child(
+            components::panel(p)
+                .p(px(19.))
+                .child(div().font_weight(FontWeight::SEMIBOLD).child("密集数据表 · Dense Table"))
+                .child(div().h(px(10.)))
+                .child(components::small_label(
+                    "表头、表行、选中态和空状态可在其他桌面应用中直接复用；数据与事件仍由页面管理。",
+                    p,
+                ))
+                .child(div().h(px(14.)))
+                .child(components::dense_table_header(["模块", "状态", "类型"], p))
+                .child(components::dense_table_row(
+                    "showcase-row-1",
+                    ["Core Service", "运行中", "后台任务"],
+                    p,
+                    shell.density.row_height(),
+                    true,
+                ))
+                .child(components::dense_table_row(
+                    "showcase-row-2",
+                    ["Resource Monitor", "就绪", "面板"],
+                    p,
+                    shell.density.row_height(),
+                    false,
+                ))
+                .child(components::table_empty_state(
+                    "没有匹配的条目时，使用统一的空状态提示。",
+                    p,
+                )),
+        )
         .into_any_element()
 }

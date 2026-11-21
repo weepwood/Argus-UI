@@ -120,6 +120,79 @@ pub fn divider(p: Palette) -> Div {
     div().h(px(1.)).w_full().bg(p.border)
 }
 
+/// Product-neutral header for a compact, equal-width data table.
+///
+/// Callers supply the labels, while navigation, selection, sorting and data
+/// ownership remain outside the component.
+pub fn dense_table_header<I, S>(columns: I, p: Palette) -> Div
+where
+    I: IntoIterator<Item = S>,
+    S: Into<SharedString>,
+{
+    div()
+        .flex()
+        .h(px(36.))
+        .px(px(13.))
+        .items_center()
+        .border_b_1()
+        .border_color(p.border)
+        .bg(p.text_plate(p.surface, 0.25))
+        .children(columns.into_iter().map(|column| {
+            div()
+                .flex_1()
+                .min_w_0()
+                .text_size(px(10.))
+                .text_color(p.muted)
+                .child(column.into())
+        }))
+}
+
+/// An independently styled table row. The caller decides its stable ID and
+/// whether a row is selected, and can attach event handlers to the result.
+pub fn dense_table_row<I, S>(
+    id: impl Into<ElementId>,
+    cells: I,
+    p: Palette,
+    height: f32,
+    selected: bool,
+) -> Stateful<Div>
+where
+    I: IntoIterator<Item = S>,
+    S: Into<SharedString>,
+{
+    div()
+        .id(id)
+        .flex()
+        .h(px(height.max(32.)))
+        .px(px(13.))
+        .items_center()
+        .border_b_1()
+        .border_color(p.border.opacity(0.68))
+        .bg(if selected {
+            p.accent_soft
+        } else {
+            p.text_plate(p.surface, 0.52)
+        })
+        .hover(move |s| s.bg(p.hover.opacity(0.8)))
+        .children(cells.into_iter().enumerate().map(|(index, value)| {
+            div()
+                .flex_1()
+                .min_w_0()
+                .text_size(px(11.))
+                .text_color(if index == 0 { p.text } else { p.muted })
+                .child(value.into())
+        }))
+}
+
+/// Keep empty states identical across list-based features.
+pub fn table_empty_state(message: impl Into<SharedString>, p: Palette) -> Div {
+    div()
+        .p(px(24.))
+        .text_color(p.muted)
+        .text_size(px(12.))
+        .child(message.into())
+}
+
 pub fn progress(p: Palette, color: Hsla, percent: f32) -> Div {
     let percent = percent.clamp(0., 100.);
     div()
