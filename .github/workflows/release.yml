@@ -6,6 +6,7 @@ name: Release
 on:
   push:
     tags: ["v*"]
+    branches: [arena/fbe7e765-argus-ui]  # TEMP: dry run, removed before merge
   workflow_dispatch:
     inputs:
       tag:
